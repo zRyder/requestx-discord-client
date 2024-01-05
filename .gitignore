@@ -1,0 +1,8 @@
+/target
+.env
+.idea
+/migration
+/log
+*.iml
+Cargo.lock
+*.DS_Store
