@@ -1,0 +1,5 @@
+[requestx_api_config]
+base_url="http://localhost:8085"
+
+[requestx_api_config.paths]
+request_level="/api/v1/request_level"
