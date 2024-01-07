@@ -10,6 +10,7 @@ use crate::{
 	},
 	model::{error::level_request_error::LevelRequestError, level_request::LevelRequest}
 };
+use crate::model::requestx_api::level_request_data::LevelRequestData;
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,
@@ -32,7 +33,7 @@ impl RequestXApiClient<'_> {
 	pub async fn make_requestx_api_level_request(
 		self,
 		level_request: LevelRequest
-	) -> Result<(), LevelRequestError> {
+	) -> Result<LevelRequestData, LevelRequestError> {
 		match serde_json::to_string(&level_request) {
 			Ok(serialized_request) => {
 				let response = self
@@ -54,8 +55,9 @@ impl RequestXApiClient<'_> {
 							Err(LevelRequestError::RequestXApiError)
 						} else {
 							let response_string = response.text().await.unwrap();
-							println!("{}", response_string);
-							Ok(())
+							let level_data: LevelRequestData = serde_json::from_str(&response_string).unwrap();
+							println!("{:?}", level_data);
+							Ok(level_data)
 						}
 					}
 					Err(error) => {
@@ -109,7 +111,7 @@ mod tests {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
 			request_score: RequestRating::One,
-			video_link: None
+			youtube_video_link: None
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)
@@ -133,7 +135,7 @@ mod tests {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
 			request_score: RequestRating::One,
-			video_link: None
+			youtube_video_link: None
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)

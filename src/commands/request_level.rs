@@ -1,9 +1,12 @@
+use std::fmt::format;
 use std::str::FromStr;
 
 use serenity::{
 	all::{CommandInteraction, CommandOptionType},
 	builder::{CreateCommand, CreateCommandOption}
 };
+use serenity::all::{ChannelId, CreateInteractionResponse, CreateInteractionResponseMessage, MessageBuilder};
+use serenity::prelude::Context;
 
 use crate::{
 	model::{
@@ -42,14 +45,16 @@ pub fn register() -> CreateCommand {
 			.add_string_choice("Insane, 9 Stars/Moons", "Nine")
 			.add_string_choice("Demon, 10 Stars/Moons", "Ten")
 		)
-		.add_option(CreateCommandOption::new(
-			CommandOptionType::String,
-			"video-link",
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::String,
+				"video-link",
 			"A link to the video showcasing the requested level."
-		))
+			).required(true)
+		)
 }
 
-pub async fn run(command: &CommandInteraction) -> String {
+pub async fn run(ctx: &Context, command: &CommandInteraction) {
 	let level_request = LevelRequest {
 		discord_user_id: u64::from(command.user.id),
 		level_id: command
@@ -65,30 +70,58 @@ pub async fn run(command: &CommandInteraction) -> String {
 			command.data.options.get(1).unwrap().value.as_str().unwrap()
 		)
 		.unwrap(),
-		video_link: if let Some(link) = command.data.options.get(2).unwrap().value.as_str() {
-			Some(link.to_string())
-		} else {
-			None
-		}
+		youtube_video_link: command.data.options.get(2).unwrap().value.as_str().unwrap().to_string()
 	};
 
 	let service = LevelRequestService::new(level_request);
+	let content: String;
 	match service.request_level().await {
-		Ok(_) => "Level has been requested successfully!".to_string(),
-		Err(error) => match error {
-			LevelRequestError::LevelRequestExists => {
-				"Level has already been requested.".to_string()
-			}
-			LevelRequestError::MalformedRequestError => {
-				"Level request was not properly formatted.".to_string()
-			}
-			LevelRequestError::RequestError => "There was an error making the request.".to_string(),
-			LevelRequestError::SerializeError => {
-				"There was an error making the request.".to_string()
-			}
-			LevelRequestError::RequestXApiError => {
-				"There was an error making the request.".to_string()
+		Ok(level_data) => {
+			content = "Level has been requested successfully!".to_string();
+			invoke_ephermal(&content, &ctx, &command).await;
+
+			let request_message = MessageBuilder::new()
+				.push(format!("\"{}\" by {}\n", &level_data.level_name, &level_data.level_author))
+				.push(format!("{}\n", &level_data.level_id))
+				.push(format!("Requested {}\n", &level_data.request_score))
+				.push(format!("{}", &level_data.youtube_video_link))
+				.build();
+
+			if let Err(error) = ChannelId::new(1193493680594616411).say(&ctx.http, &request_message).await {
+				println!("Error sending message: {error:?}");
 			}
 		}
+		Err(error) => match error {
+			LevelRequestError::LevelRequestExists => {
+				content = "Level has already been requested.".to_string();
+				invoke_ephermal(&content, &ctx, &command).await;
+			}
+			LevelRequestError::MalformedRequestError => {
+				content = "Level request was not properly formatted.".to_string();
+				invoke_ephermal(&content, &ctx, &command).await;
+			}
+			LevelRequestError::RequestError => {
+				content = "There was an error making the request.".to_string();
+				invoke_ephermal(&content, &ctx, &command).await;
+			}
+			LevelRequestError::SerializeError => {
+				content = "There was an error making the request.".to_string();
+				invoke_ephermal(&content, &ctx, &command).await;
+			}
+			LevelRequestError::RequestXApiError => {
+				content = "There was an error making the request.".to_string();
+				invoke_ephermal(&content, &ctx, &command).await;
+			}
+		}
+	}
+}
+
+async fn invoke_ephermal(content: &str, ctx: &Context, command: &CommandInteraction) {
+	let data = CreateInteractionResponseMessage::new()
+		.ephemeral(true)
+		.content(content);
+	let builder = CreateInteractionResponse::Message(data);
+	if let Err(err) = command.create_response(&ctx.http, builder).await {
+		println!("Cannot respond to slash command: {err}");
 	}
 }

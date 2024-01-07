@@ -34,20 +34,10 @@ impl EventHandler for Handler {
 		if let Interaction::Command(command) = interaction {
 			println!("Received command interaction: {command:#?}");
 
-			let content = match command.data.name.as_str() {
-				"request-level" => Some(request_level::run(&command).await),
-				_ => Some("not implemented :(".to_string())
+			match command.data.name.as_str() {
+				"request-level" => request_level::run(&ctx, &command).await,
+				_ => println!("Unreachable")
 			};
-
-			if let Some(content) = content {
-				let data = CreateInteractionResponseMessage::new()
-					.ephemeral(true)
-					.content(content);
-				let builder = CreateInteractionResponse::Message(data);
-				if let Err(why) = command.create_response(&ctx.http, builder).await {
-					println!("Cannot respond to slash command: {why}");
-				}
-			}
 		}
 	}
 }

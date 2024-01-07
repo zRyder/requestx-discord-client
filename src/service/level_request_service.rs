@@ -2,6 +2,7 @@ use crate::model::{
 	error::level_request_error::LevelRequestError, level_request::LevelRequest,
 	request_score::RequestRating, requestx_api::requestx_api_client::RequestXApiClient
 };
+use crate::model::requestx_api::level_request_data::LevelRequestData;
 
 pub struct LevelRequestService<'a> {
 	requestx_api_client: RequestXApiClient<'a>,
@@ -16,20 +17,14 @@ impl<'a> LevelRequestService<'a> {
 		}
 	}
 
-	pub async fn request_level(self) -> Result<(), LevelRequestError> {
-		if self.level_request.request_score == RequestRating::Ten
-			&& self.level_request.video_link.is_none()
+	pub async fn request_level(self) -> Result<LevelRequestData, LevelRequestError> {
+		match self
+			.requestx_api_client
+			.make_requestx_api_level_request(self.level_request)
+			.await
 		{
-			Err(LevelRequestError::MalformedRequestError)
-		} else {
-			match self
-				.requestx_api_client
-				.make_requestx_api_level_request(self.level_request)
-				.await
-			{
-				Ok(()) => Ok(()),
-				Err(error) => Err(error)
-			}
+			Ok(resp) => Ok(resp),
+			Err(error) => Err(error)
 		}
 	}
 }
