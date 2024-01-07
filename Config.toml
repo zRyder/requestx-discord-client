@@ -1,0 +1,5 @@
+[requestx_api_config]
+base_url="http://127.0.0.1:8000"
+
+[requestx_api_config.paths]
+request_level="/api/v1/request_level"
