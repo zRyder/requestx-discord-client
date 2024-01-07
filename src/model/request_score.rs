@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use serde::{Serialize, Serializer};
 
 #[derive(PartialEq)]
@@ -12,6 +14,26 @@ pub enum RequestRating {
 	Eight,
 	Nine,
 	Ten
+}
+
+impl FromStr for RequestRating {
+	type Err = ();
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s {
+			"One" => Ok(RequestRating::One),
+			"Two" => Ok(RequestRating::Two),
+			"Three" => Ok(RequestRating::Three),
+			"Four" => Ok(RequestRating::Four),
+			"Five" => Ok(RequestRating::Five),
+			"Six" => Ok(RequestRating::Six),
+			"Seven" => Ok(RequestRating::Seven),
+			"Eight" => Ok(RequestRating::Eight),
+			"Nine" => Ok(RequestRating::Nine),
+			"Ten" => Ok(RequestRating::Ten),
+			_ => Err(())
+		}
+	}
 }
 
 impl Serialize for RequestRating {

@@ -17,8 +17,8 @@ impl<'a> LevelRequestService<'a> {
 	}
 
 	pub async fn request_level(self) -> Result<(), LevelRequestError> {
-		if (self.level_request.request_score == RequestRating::Ten
-			&& self.level_request.video_link.is_none())
+		if self.level_request.request_score == RequestRating::Ten
+			&& self.level_request.video_link.is_none()
 		{
 			Err(LevelRequestError::MalformedRequestError)
 		} else {

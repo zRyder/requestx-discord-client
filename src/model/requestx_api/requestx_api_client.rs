@@ -1,4 +1,3 @@
-use poise::futures_util::future::err;
 use reqwest::{
 	header::{HeaderMap, HeaderValue},
 	Client, StatusCode
@@ -87,9 +86,9 @@ mod tests {
 	use tokio_test::{assert_err, assert_ok};
 
 	use crate::{
-		config::requestx_api_config::{read_app_config, REQUESTX_API_CONFIG},
+		config::requestx_api_config::REQUESTX_API_CONFIG,
 		model::{
-			level_request::LevelRequest, level_type::LevelType, request_score::RequestRating,
+			level_request::LevelRequest, request_score::RequestRating,
 			requestx_api::requestx_api_client::RequestXApiClient
 		}
 	};
@@ -110,7 +109,6 @@ mod tests {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
 			request_score: RequestRating::One,
-			level_type: LevelType::Classic,
 			video_link: None
 		};
 		let mock = server.mock(|when, then| {
@@ -135,7 +133,6 @@ mod tests {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
 			request_score: RequestRating::One,
-			level_type: LevelType::Classic,
 			video_link: None
 		};
 		let mock = server.mock(|when, then| {

@@ -2,16 +2,14 @@ mod commands;
 mod config;
 mod model;
 
+mod serenity;
 mod service;
 
 use std::process;
 
-use poise::serenity_prelude as serenity;
-use toml::de::Error;
+use ::serenity::{prelude::GatewayIntents, Client};
 
 use crate::config::common_config::init_app_config;
-
-struct Data {}
 
 #[tokio::main]
 async fn main() {
@@ -20,25 +18,17 @@ async fn main() {
 		eprintln!("Error loading app config: {}", error);
 		process::exit(1)
 	} else {
-		let intents = serenity::GatewayIntents::non_privileged();
+		let mut client = Client::builder(token, GatewayIntents::empty())
+			.event_handler(serenity::command_interaction_handler::Handler)
+			.await
+			.expect("Error creating client");
 
-		let framework = poise::Framework::builder()
-			.options(poise::FrameworkOptions {
-				commands: vec![commands::request_level::request_level()],
-				..Default::default()
-			})
-			.setup(|ctx, _ready, framework| {
-				Box::pin(async move {
-					poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-					Ok(Data {})
-				})
-			})
-			.build();
-
-		let client = serenity::ClientBuilder::new(token, intents)
-			.framework(framework)
-			.await;
-		println!("Running");
-		client.unwrap().start().await.unwrap();
+		// Finally, start a single shard, and start listening to events.
+		//
+		// Shards will automatically attempt to reconnect, and will perform exponential
+		// backoff until it reconnects.
+		if let Err(why) = client.start().await {
+			println!("Client error: {why:?}");
+		}
 	}
 }
