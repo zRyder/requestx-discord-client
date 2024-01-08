@@ -1,10 +1,7 @@
-use std::{fmt::format, str::FromStr};
+use std::str::FromStr;
 
 use serenity::{
-	all::{
-		ChannelId, CommandInteraction, CommandOptionType, CreateInteractionResponse,
-		CreateInteractionResponseMessage, MessageBuilder
-	},
+	all::{ChannelId, CommandInteraction, CommandOptionType, MessageBuilder},
 	builder::{CreateCommand, CreateCommandOption},
 	prelude::Context
 };
@@ -15,8 +12,8 @@ use crate::{
 		level_request::{LevelRequest, UpdateLevelRequestMessageId},
 		request_score::RequestRating
 	},
-	serenity::common::invoke_ephermal,
-	service::level_request_service::LevelRequestService
+	service::level_request_service::LevelRequestService,
+	util::discord::invoke_ephermal
 };
 
 pub fn register() -> CreateCommand {
@@ -110,7 +107,7 @@ pub async fn run(ctx: &Context, command: &CommandInteraction) {
 					let update_request_message_id = UpdateLevelRequestMessageId {
 						discord_user_id: level_data.discord_id,
 						level_id: level_data.level_id,
-						discord_message_id: u64::from(msg.id)
+						discord_message_id: msg.id.get()
 					};
 					if let Err(error) = &service
 						.update_request_message_id(update_request_message_id)

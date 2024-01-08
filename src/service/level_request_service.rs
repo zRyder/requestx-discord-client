@@ -25,7 +25,7 @@ impl<'a> LevelRequestService<'a> {
 	pub async fn get_level_request(
 		&self,
 		get_level_request: GetLevelRequest
-	) -> Result<LevelRequestData, LevelRequestError> {
+	) -> Result<Option<LevelRequestData>, LevelRequestError> {
 		match self
 			.requestx_api_client
 			.get_level_request(get_level_request)

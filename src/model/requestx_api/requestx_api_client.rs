@@ -43,7 +43,7 @@ impl RequestXApiClient<'_> {
 	pub async fn get_level_request(
 		&self,
 		get_level_request: GetLevelRequest
-	) -> Result<LevelRequestData, LevelRequestError> {
+	) -> Result<Option<LevelRequestData>, LevelRequestError> {
 		let mut headers = HeaderMap::new();
 		headers.insert(
 			"X-Discord-Id",
@@ -63,7 +63,9 @@ impl RequestXApiClient<'_> {
 
 		match response {
 			Ok(response) => {
-				if response.status().is_client_error() {
+				if response.status().eq(&StatusCode::NOT_FOUND) {
+					Ok(None)
+				} else if response.status().is_client_error() {
 					Err(RequestXApiClient::handle_level_request_client_error(
 						response.status()
 					))
@@ -73,7 +75,7 @@ impl RequestXApiClient<'_> {
 					let response_string = response.text().await.unwrap();
 					let level_data: LevelRequestData =
 						serde_json::from_str(&response_string).unwrap();
-					Ok(level_data)
+					Ok(Some(level_data))
 				}
 			}
 			Err(error) => {
