@@ -8,9 +8,19 @@ use crate::{
 		constants::{APPLICATION_JSON, CONTENT_TYPE},
 		requestx_api_config::{RequestxApiConfig, REQUESTX_API_CONFIG}
 	},
-	model::{error::level_request_error::LevelRequestError, level_request::LevelRequest}
+	model::{
+		error::level_request_error::LevelRequestError,
+		level_request::{
+			GetLevelRequest, GetLevelReview, LevelRequest, UpdateLevelRequestMessageId,
+			UpdateLevelRequestThreadId
+		},
+		level_review::{LevelReview, UpdateLevelReviewMessageId},
+		requestx_api::{
+			level_request_data::LevelRequestData, level_review_data::LevelReviewData,
+			level_review_error::LevelReviewError
+		}
+	}
 };
-use crate::model::requestx_api::level_request_data::LevelRequestData;
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,
@@ -30,8 +40,96 @@ impl RequestXApiClient<'_> {
 		}
 	}
 
+	pub async fn get_level_request(
+		&self,
+		get_level_request: GetLevelRequest
+	) -> Result<LevelRequestData, LevelRequestError> {
+		let mut headers = HeaderMap::new();
+		headers.insert(
+			"X-Discord-Id",
+			HeaderValue::from(get_level_request.discord_user_id)
+		);
+		let response = self
+			.web_client
+			.get(format!(
+				"{}{}/{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.request_level,
+				get_level_request.level_id
+			))
+			.headers(headers)
+			.send()
+			.await;
+
+		match response {
+			Ok(response) => {
+				if response.status().is_client_error() {
+					Err(RequestXApiClient::handle_level_request_client_error(
+						response.status()
+					))
+				} else if response.status().is_server_error() {
+					Err(LevelRequestError::RequestXApiError)
+				} else {
+					let response_string = response.text().await.unwrap();
+					let level_data: LevelRequestData =
+						serde_json::from_str(&response_string).unwrap();
+					Ok(level_data)
+				}
+			}
+			Err(error) => {
+				println!("{}", error);
+				Err(LevelRequestError::RequestError)
+			}
+		}
+	}
+
+	pub async fn get_level_review(
+		&self,
+		get_level_review: GetLevelReview
+	) -> Result<Option<LevelReviewData>, LevelReviewError> {
+		let mut headers = HeaderMap::new();
+		headers.insert(
+			"X-Discord-Id",
+			HeaderValue::from(get_level_review.discord_user_id)
+		);
+		let response = self
+			.web_client
+			.get(format!(
+				"{}{}/{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.review_level,
+				get_level_review.level_id
+			))
+			.headers(headers)
+			.send()
+			.await;
+
+		match response {
+			Ok(response) => {
+				if response.status().eq(&StatusCode::NOT_FOUND) {
+					Ok(None)
+				} else if response.status().is_client_error() {
+					Err(RequestXApiClient::handle_level_review_client_error(
+						response.status()
+					))
+				} else if response.status().is_server_error() {
+					Err(LevelReviewError::RequestXApiError)
+				} else {
+					let response_string = response.text().await.unwrap();
+					let level_review_data: LevelReviewData =
+						serde_json::from_str(&response_string).unwrap();
+					Ok(Some(level_review_data))
+				}
+			}
+			Err(error) => {
+				println!("{}", error);
+				Err(LevelReviewError::RequestError)
+			}
+		}
+	}
+
 	pub async fn make_requestx_api_level_request(
-		self,
+		&self,
 		level_request: LevelRequest
 	) -> Result<LevelRequestData, LevelRequestError> {
 		match serde_json::to_string(&level_request) {
@@ -50,12 +148,15 @@ impl RequestXApiClient<'_> {
 				match response {
 					Ok(response) => {
 						if response.status().is_client_error() {
-							Err(RequestXApiClient::handle_client_error(response.status()))
+							Err(RequestXApiClient::handle_level_request_client_error(
+								response.status()
+							))
 						} else if response.status().is_server_error() {
 							Err(LevelRequestError::RequestXApiError)
 						} else {
 							let response_string = response.text().await.unwrap();
-							let level_data: LevelRequestData = serde_json::from_str(&response_string).unwrap();
+							let level_data: LevelRequestData =
+								serde_json::from_str(&response_string).unwrap();
 							println!("{:?}", level_data);
 							Ok(level_data)
 						}
@@ -73,9 +174,191 @@ impl RequestXApiClient<'_> {
 		}
 	}
 
-	fn handle_client_error(response_status: StatusCode) -> LevelRequestError {
+	pub async fn make_requestx_api_level_review_request(
+		&self,
+		level_review: &LevelReview
+	) -> Result<LevelReviewData, LevelReviewError> {
+		match serde_json::to_string(&level_review) {
+			Ok(serialized_request) => {
+				let response = self
+					.web_client
+					.post(format!(
+						"{}{}",
+						self.requestx_api_config.base_url,
+						self.requestx_api_config.paths.review_level
+					))
+					.body(serialized_request)
+					.send()
+					.await;
+
+				match response {
+					Ok(response) => {
+						if response.status().is_client_error() {
+							Err(RequestXApiClient::handle_level_review_client_error(
+								response.status()
+							))
+						} else if response.status().is_server_error() {
+							Err(LevelReviewError::RequestXApiError)
+						} else {
+							let response_string = response.text().await.unwrap();
+							let level_review_data: LevelReviewData =
+								serde_json::from_str(&response_string).unwrap();
+							Ok(level_review_data)
+						}
+					}
+					Err(error) => {
+						println!("{}", error);
+						Err(LevelReviewError::RequestError)
+					}
+				}
+			}
+			Err(err) => Err(LevelReviewError::SerializeError)
+		}
+	}
+
+	pub async fn update_review_message_id(
+		&self,
+		update_level_review: UpdateLevelReviewMessageId
+	) -> Result<(), LevelReviewError> {
+		match serde_json::to_string(&update_level_review) {
+			Ok(serialized_request) => {
+				let response = self
+					.web_client
+					.patch(format!(
+						"{}{}",
+						self.requestx_api_config.base_url,
+						self.requestx_api_config.paths.update_review_message_id
+					))
+					.body(serialized_request)
+					.send()
+					.await;
+
+				match response {
+					Ok(response) => {
+						if response.status().is_client_error() {
+							Err(RequestXApiClient::handle_level_review_client_error(
+								response.status()
+							))
+						} else if response.status().is_server_error() {
+							Err(LevelReviewError::RequestXApiError)
+						} else {
+							Ok(())
+						}
+					}
+					Err(error) => {
+						println!("{}", error);
+						Err(LevelReviewError::RequestError)
+					}
+				}
+			}
+			Err(err) => {
+				// fail
+				Err(LevelReviewError::SerializeError)
+			}
+		}
+	}
+
+	pub async fn update_request_message_id(
+		&self,
+		update_level_request: UpdateLevelRequestMessageId
+	) -> Result<(), LevelRequestError> {
+		match serde_json::to_string(&update_level_request) {
+			Ok(serialized_request) => {
+				let response = self
+					.web_client
+					.patch(format!(
+						"{}{}",
+						self.requestx_api_config.base_url,
+						self.requestx_api_config.paths.update_request_message_id
+					))
+					.body(serialized_request)
+					.send()
+					.await;
+
+				match response {
+					Ok(response) => {
+						if response.status().is_client_error() {
+							Err(RequestXApiClient::handle_level_request_client_error(
+								response.status()
+							))
+						} else if response.status().is_server_error() {
+							Err(LevelRequestError::RequestXApiError)
+						} else {
+							Ok(())
+						}
+					}
+					Err(error) => {
+						println!("{}", error);
+						Err(LevelRequestError::RequestError)
+					}
+				}
+			}
+			Err(err) => {
+				// fail
+				Err(LevelRequestError::SerializeError)
+			}
+		}
+	}
+
+	pub async fn update_request_thread_id(
+		&self,
+		update_level_request: UpdateLevelRequestThreadId
+	) -> Result<(), LevelRequestError> {
+		match serde_json::to_string(&update_level_request) {
+			Ok(serialized_request) => {
+				let response = self
+					.web_client
+					.patch(format!(
+						"{}{}",
+						self.requestx_api_config.base_url,
+						self.requestx_api_config.paths.update_request_thread_id
+					))
+					.body(serialized_request)
+					.send()
+					.await;
+
+				match response {
+					Ok(response) => {
+						if response.status().is_client_error() {
+							Err(RequestXApiClient::handle_level_request_client_error(
+								response.status()
+							))
+						} else if response.status().is_server_error() {
+							Err(LevelRequestError::RequestXApiError)
+						} else {
+							Ok(())
+						}
+					}
+					Err(error) => {
+						println!("{}", error);
+						Err(LevelRequestError::RequestError)
+					}
+				}
+			}
+			Err(err) => {
+				// fail
+				Err(LevelRequestError::SerializeError)
+			}
+		}
+	}
+
+	fn handle_level_request_client_error(response_status: StatusCode) -> LevelRequestError {
 		if response_status.eq(&StatusCode::CONFLICT) {
 			LevelRequestError::LevelRequestExists
+		} else {
+			LevelRequestError::RequestXApiError
+		}
+	}
+
+	fn handle_level_review_client_error(response_status: StatusCode) -> LevelReviewError {
+		LevelReviewError::RequestXApiError
+	}
+
+	fn handle_update_request_message_id_client_error(
+		response_status: StatusCode
+	) -> LevelRequestError {
+		if response_status.eq(&StatusCode::NOT_FOUND) {
+			LevelRequestError::LevelRequestDoesNotExists
 		} else {
 			LevelRequestError::RequestXApiError
 		}
@@ -111,7 +394,7 @@ mod tests {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
 			request_score: RequestRating::One,
-			youtube_video_link: None
+			youtube_video_link: "Some".to_string()
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)
@@ -135,7 +418,7 @@ mod tests {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
 			request_score: RequestRating::One,
-			youtube_video_link: None
+			youtube_video_link: "SOME".to_string()
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)

@@ -1,18 +1,21 @@
-use std::fmt::format;
-use std::str::FromStr;
+use std::{fmt::format, str::FromStr};
 
 use serenity::{
-	all::{CommandInteraction, CommandOptionType},
-	builder::{CreateCommand, CreateCommandOption}
+	all::{
+		ChannelId, CommandInteraction, CommandOptionType, CreateInteractionResponse,
+		CreateInteractionResponseMessage, MessageBuilder
+	},
+	builder::{CreateCommand, CreateCommandOption},
+	prelude::Context
 };
-use serenity::all::{ChannelId, CreateInteractionResponse, CreateInteractionResponseMessage, MessageBuilder};
-use serenity::prelude::Context;
 
 use crate::{
 	model::{
-		error::level_request_error::LevelRequestError, level_request::LevelRequest,
+		error::level_request_error::LevelRequestError,
+		level_request::{LevelRequest, UpdateLevelRequestMessageId},
 		request_score::RequestRating
 	},
+	serenity::common::invoke_ephermal,
 	service::level_request_service::LevelRequestService
 };
 
@@ -49,8 +52,9 @@ pub fn register() -> CreateCommand {
 			CreateCommandOption::new(
 				CommandOptionType::String,
 				"video-link",
-			"A link to the video showcasing the requested level."
-			).required(true)
+				"A link to the video showcasing the requested level."
+			)
+			.required(true)
 		)
 }
 
@@ -70,30 +74,63 @@ pub async fn run(ctx: &Context, command: &CommandInteraction) {
 			command.data.options.get(1).unwrap().value.as_str().unwrap()
 		)
 		.unwrap(),
-		youtube_video_link: command.data.options.get(2).unwrap().value.as_str().unwrap().to_string()
+		youtube_video_link: command
+			.data
+			.options
+			.get(2)
+			.unwrap()
+			.value
+			.as_str()
+			.unwrap()
+			.to_string()
 	};
 
-	let service = LevelRequestService::new(level_request);
+	let service = LevelRequestService::new();
 	let content: String;
-	match service.request_level().await {
+	match service.request_level(level_request).await {
 		Ok(level_data) => {
 			content = "Level has been requested successfully!".to_string();
 			invoke_ephermal(&content, &ctx, &command).await;
 
 			let request_message = MessageBuilder::new()
-				.push(format!("\"{}\" by {}\n", &level_data.level_name, &level_data.level_author))
+				.push(format!(
+					"\"{}\" by {}\n",
+					&level_data.level_name, &level_data.level_author
+				))
 				.push(format!("{}\n", &level_data.level_id))
 				.push(format!("Requested {}\n", &level_data.request_score))
 				.push(format!("{}", &level_data.youtube_video_link))
 				.build();
 
-			if let Err(error) = ChannelId::new(1193493680594616411).say(&ctx.http, &request_message).await {
-				println!("Error sending message: {error:?}");
+			match ChannelId::new(1193493680594616411)
+				.say(&ctx.http, &request_message)
+				.await
+			{
+				Ok(msg) => {
+					let update_request_message_id = UpdateLevelRequestMessageId {
+						discord_user_id: level_data.discord_id,
+						level_id: level_data.level_id,
+						discord_message_id: u64::from(msg.id)
+					};
+					if let Err(error) = &service
+						.update_request_message_id(update_request_message_id)
+						.await
+					{
+						println!("Error updating message ID: {error:?}");
+					}
+				}
+				Err(error) => {
+					println!("Error sending message: {error:?}");
+				}
 			}
 		}
 		Err(error) => match error {
 			LevelRequestError::LevelRequestExists => {
 				content = "Level has already been requested.".to_string();
+				invoke_ephermal(&content, &ctx, &command).await;
+			}
+			LevelRequestError::LevelRequestDoesNotExists => {
+				content = "Level request does not exist.".to_string();
 				invoke_ephermal(&content, &ctx, &command).await;
 			}
 			LevelRequestError::MalformedRequestError => {
@@ -113,15 +150,5 @@ pub async fn run(ctx: &Context, command: &CommandInteraction) {
 				invoke_ephermal(&content, &ctx, &command).await;
 			}
 		}
-	}
-}
-
-async fn invoke_ephermal(content: &str, ctx: &Context, command: &CommandInteraction) {
-	let data = CreateInteractionResponseMessage::new()
-		.ephemeral(true)
-		.content(content);
-	let builder = CreateInteractionResponse::Message(data);
-	if let Err(err) = command.create_response(&ctx.http, builder).await {
-		println!("Cannot respond to slash command: {err}");
 	}
 }

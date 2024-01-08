@@ -1,9 +1,11 @@
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
+use std::{
+	fmt::{Display, Formatter},
+	str::FromStr
+};
 
 use serde::{Deserialize, Serialize, Serializer};
 
-#[derive(PartialEq, Deserialize, Debug)]
+#[derive(PartialEq, Deserialize, Debug, Copy, Clone)]
 pub enum RequestRating {
 	One,
 	Two,
@@ -20,16 +22,36 @@ pub enum RequestRating {
 impl Display for RequestRating {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		match self {
-			RequestRating::One => { write!(f, "Auto, One Star/Moon") }
-			RequestRating::Two => {write!(f, "Easy, Two Stars/Moons")}
-			RequestRating::Three => {write!(f, "Normal, Three Stars/Moons")}
-			RequestRating::Four => {write!(f, "Hard, Four Stars/Moons")}
-			RequestRating::Five => {write!(f, "Hard, Five Stars/Moons")}
-			RequestRating::Six => {write!(f, "Harder, Six Stars/Moons")}
-			RequestRating::Seven => {write!(f, "Harder, Seven Stars/Moons")}
-			RequestRating::Eight => {write!(f, "Insane, Eight Stars/Moons")}
-			RequestRating::Nine => {write!(f, "Insane, Nine Stars/Moons")}
-			RequestRating::Ten => {write!(f, "Demon, Ten Stars/Moons")}
+			RequestRating::One => {
+				write!(f, "Auto, One Star/Moon")
+			}
+			RequestRating::Two => {
+				write!(f, "Easy, Two Stars/Moons")
+			}
+			RequestRating::Three => {
+				write!(f, "Normal, Three Stars/Moons")
+			}
+			RequestRating::Four => {
+				write!(f, "Hard, Four Stars/Moons")
+			}
+			RequestRating::Five => {
+				write!(f, "Hard, Five Stars/Moons")
+			}
+			RequestRating::Six => {
+				write!(f, "Harder, Six Stars/Moons")
+			}
+			RequestRating::Seven => {
+				write!(f, "Harder, Seven Stars/Moons")
+			}
+			RequestRating::Eight => {
+				write!(f, "Insane, Eight Stars/Moons")
+			}
+			RequestRating::Nine => {
+				write!(f, "Insane, Nine Stars/Moons")
+			}
+			RequestRating::Ten => {
+				write!(f, "Demon, Ten Stars/Moons")
+			}
 		}
 	}
 }
