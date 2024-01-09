@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct LevelReviewData {
 	pub level_id: u64,

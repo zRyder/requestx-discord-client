@@ -6,7 +6,7 @@ use crate::{
 	model::{
 		error::level_request_error::LevelRequestError,
 		level_request::{
-			GetLevelRequest, GetLevelReview, UpdateLevelRequestMessageId,
+			GetLevelRequest, GetLevelReview,
 			UpdateLevelRequestThreadId
 		},
 		level_review::{LevelReview, UpdateLevelReviewMessageId},

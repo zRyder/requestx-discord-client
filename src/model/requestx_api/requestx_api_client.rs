@@ -16,9 +16,12 @@ use crate::{
 		},
 		level_review::{LevelReview, UpdateLevelReviewMessageId},
 		requestx_api::{
-			level_request_data::LevelRequestData, level_review_data::LevelReviewData,
-			level_review_error::LevelReviewError
-		}
+			level_request_data::LevelRequestData,
+			level_review_data::LevelReviewData,
+			level_review_error::LevelReviewError,
+			reviewer_data::{ReviewerData, ReviewerError}
+		},
+		reviewer::{AddReviewerRequest, GetReviewerRequest, RemoveReviewerRequest}
 	}
 };
 
@@ -218,6 +221,121 @@ impl RequestXApiClient<'_> {
 		}
 	}
 
+	pub async fn make_get_reviewer_request(
+		&self,
+		get_reviewer_request: GetReviewerRequest
+	) -> Result<Option<ReviewerData>, ReviewerError> {
+		let response = self
+			.web_client
+			.get(format!(
+				"{}{}/{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.reviewer,
+				get_reviewer_request.reviewer_discord_id
+			))
+			.query(&[("is_active", get_reviewer_request.is_active)])
+			.send()
+			.await;
+
+		match response {
+			Ok(response) => {
+				if response.status().eq(&StatusCode::NOT_FOUND) {
+					Ok(None)
+				} else if response.status().is_client_error() {
+					Err(RequestXApiClient::handle_reviewer_client_error(
+						response.status()
+					))
+				} else if response.status().is_server_error() {
+					Err(ReviewerError::RequestXApiError)
+				} else {
+					let response_string = response.text().await.unwrap();
+					let reviewer_data: ReviewerData =
+						serde_json::from_str(&response_string).unwrap();
+					Ok(Some(reviewer_data))
+				}
+			}
+			Err(error) => {
+				println!("{}", error);
+				Err(ReviewerError::RequestError)
+			}
+		}
+	}
+
+	pub async fn make_add_reviewer_request(
+		&self,
+		create_reviewer_request: AddReviewerRequest
+	) -> Result<(), ReviewerError> {
+		match serde_json::to_string(&create_reviewer_request) {
+			Ok(serialized_request) => {
+				let response = self
+					.web_client
+					.post(format!(
+						"{}{}",
+						self.requestx_api_config.base_url, self.requestx_api_config.paths.reviewer
+					))
+					.body(serialized_request)
+					.send()
+					.await;
+
+				match response {
+					Ok(response) => {
+						if response.status().is_client_error() {
+							Err(RequestXApiClient::handle_reviewer_client_error(
+								response.status()
+							))
+						} else if response.status().is_server_error() {
+							Err(ReviewerError::RequestXApiError)
+						} else {
+							Ok(())
+						}
+					}
+					Err(error) => {
+						println!("{}", error);
+						Err(ReviewerError::RequestError)
+					}
+				}
+			}
+			Err(err) => {
+				// fail
+				Err(ReviewerError::SerializeError)
+			}
+		}
+	}
+
+	pub async fn make_remove_reviewer_request(
+		&self,
+		remove_reviewer_request: RemoveReviewerRequest
+	) -> Result<(), ReviewerError> {
+		let response = self
+			.web_client
+			.delete(format!(
+				"{}{}/{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.reviewer,
+				remove_reviewer_request.reviewer_discord_id
+			))
+			.send()
+			.await;
+
+		match response {
+			Ok(response) => {
+				if response.status().is_client_error() {
+					Err(RequestXApiClient::handle_reviewer_client_error(
+						response.status()
+					))
+				} else if response.status().is_server_error() {
+					Err(ReviewerError::RequestXApiError)
+				} else {
+					Ok(())
+				}
+			}
+			Err(error) => {
+				println!("{}", error);
+				Err(ReviewerError::RequestError)
+			}
+		}
+	}
+
 	pub async fn update_review_message_id(
 		&self,
 		update_level_review: UpdateLevelReviewMessageId
@@ -354,6 +472,10 @@ impl RequestXApiClient<'_> {
 
 	fn handle_level_review_client_error(response_status: StatusCode) -> LevelReviewError {
 		LevelReviewError::RequestXApiError
+	}
+
+	fn handle_reviewer_client_error(response_status: StatusCode) -> ReviewerError {
+		ReviewerError::RequestXApiError
 	}
 
 	fn handle_update_request_message_id_client_error(
