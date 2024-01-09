@@ -4,6 +4,7 @@ mod model;
 
 mod serenity;
 mod service;
+mod util;
 
 use std::process;
 

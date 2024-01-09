@@ -3,11 +3,10 @@ use std::env;
 use async_trait::async_trait;
 use serenity::{
 	all::{GuildId, Interaction, Ready},
-	builder::{CreateInteractionResponse, CreateInteractionResponseMessage},
 	prelude::{Context, EventHandler}
 };
 
-use crate::commands::request_level;
+use crate::commands::{request_level, review};
 
 pub struct Handler;
 
@@ -24,10 +23,11 @@ impl EventHandler for Handler {
 		);
 
 		let commands = guild_id
-			.set_commands(&ctx.http, vec![request_level::register()])
+			.set_commands(
+				&ctx.http,
+				vec![request_level::register(), review::register()]
+			)
 			.await;
-
-		println!("I now have the following guild slash commands: {commands:#?}");
 	}
 
 	async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -36,6 +36,7 @@ impl EventHandler for Handler {
 
 			match command.data.name.as_str() {
 				"request-level" => request_level::run(&ctx, &command).await,
+				"review" => review::run(&ctx, &command).await,
 				_ => println!("Unreachable")
 			};
 		}

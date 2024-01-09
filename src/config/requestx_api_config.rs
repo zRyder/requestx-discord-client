@@ -11,7 +11,11 @@ pub struct RequestxApiConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct RequestxApiConfigPaths {
-	pub request_level: String
+	pub request_level: String,
+	pub review_level: String,
+	pub update_request_message_id: String,
+	pub update_review_message_id: String,
+	pub update_request_thread_id: String
 }
 
 lazy_static! {
