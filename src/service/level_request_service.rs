@@ -1,14 +1,9 @@
 use crate::model::{
 	error::level_request_error::LevelRequestError,
 	level_request::{
-		GetLevelRequest, GetLevelReview, LevelRequest, UpdateLevelRequestMessageId,
-		UpdateLevelRequestThreadId
+		GetLevelRequest, LevelRequest, UpdateLevelRequestMessageId, UpdateLevelRequestThreadId
 	},
-	request_score::RequestRating,
-	requestx_api::{
-		level_request_data::LevelRequestData, level_review_data::LevelReviewData,
-		level_review_error::LevelReviewError, requestx_api_client::RequestXApiClient
-	}
+	requestx_api::{level_request_data::LevelRequestData, requestx_api_client::RequestXApiClient}
 };
 
 pub struct LevelRequestService<'a> {
@@ -59,7 +54,7 @@ impl<'a> LevelRequestService<'a> {
 			.update_request_message_id(update_level_request_message)
 			.await
 		{
-			Ok(resp) => Ok(()),
+			Ok(()) => Ok(()),
 			Err(error) => Err(error)
 		}
 	}
@@ -73,7 +68,7 @@ impl<'a> LevelRequestService<'a> {
 			.update_request_thread_id(update_level_thread_message)
 			.await
 		{
-			Ok(resp) => Ok(()),
+			Ok(()) => Ok(()),
 			Err(error) => Err(error)
 		}
 	}

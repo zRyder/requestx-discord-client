@@ -5,10 +5,7 @@ use serenity::all::{
 use crate::{
 	model::{
 		error::level_request_error::LevelRequestError,
-		level_request::{
-			GetLevelRequest, GetLevelReview, UpdateLevelRequestMessageId,
-			UpdateLevelRequestThreadId
-		},
+		level_request::{GetLevelRequest, GetLevelReview, UpdateLevelRequestThreadId},
 		level_review::{LevelReview, UpdateLevelReviewMessageId},
 		requestx_api::{
 			level_review_data::LevelReviewData, level_review_error::LevelReviewError,
@@ -52,10 +49,7 @@ impl<'a> LevelReviewService<'a> {
 		reviewer_discord_user_id: u64,
 		review_contents: String
 	) -> Result<String, LevelReviewError> {
-		let get_level_request = GetLevelRequest {
-			discord_user_id: reviewer_discord_user_id,
-			level_id
-		};
+		let get_level_request = GetLevelRequest { level_id };
 		let level_request_service = LevelRequestService::new();
 		match level_request_service
 			.get_level_request(get_level_request)

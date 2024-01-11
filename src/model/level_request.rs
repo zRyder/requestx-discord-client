@@ -4,8 +4,6 @@ use crate::model::request_score::RequestRating;
 
 #[derive(Serialize)]
 pub struct GetLevelRequest {
-	#[serde(rename = "discord_id")]
-	pub discord_user_id: u64,
 	pub level_id: u64
 }
 

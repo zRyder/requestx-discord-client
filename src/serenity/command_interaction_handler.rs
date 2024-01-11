@@ -6,7 +6,7 @@ use serenity::{
 	prelude::{Context, EventHandler}
 };
 
-use crate::commands::{request_level, review};
+use crate::commands::{request_level, review, reviewer};
 
 pub struct Handler;
 
@@ -25,7 +25,12 @@ impl EventHandler for Handler {
 		let commands = guild_id
 			.set_commands(
 				&ctx.http,
-				vec![request_level::register(), review::register()]
+				vec![
+					request_level::register(),
+					review::register_review(),
+					reviewer::register_add_reviewer(),
+					reviewer::register_remove_reviewer(),
+				]
 			)
 			.await;
 	}
@@ -36,7 +41,9 @@ impl EventHandler for Handler {
 
 			match command.data.name.as_str() {
 				"request-level" => request_level::run(&ctx, &command).await,
-				"review" => review::run(&ctx, &command).await,
+				"review" => review::post_level_review(&ctx, &command).await,
+				"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command).await,
+				"remove-reviewer" => reviewer::run_remove_reviewer(&ctx, &command).await,
 				_ => println!("Unreachable")
 			};
 		}

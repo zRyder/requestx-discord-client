@@ -13,6 +13,7 @@ pub struct RequestxApiConfig {
 pub struct RequestxApiConfigPaths {
 	pub request_level: String,
 	pub review_level: String,
+	pub reviewer: String,
 	pub update_request_message_id: String,
 	pub update_review_message_id: String,
 	pub update_request_thread_id: String
