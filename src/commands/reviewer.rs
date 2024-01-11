@@ -3,10 +3,7 @@ use serenity::all::{
 	ResolvedOption, ResolvedValue
 };
 
-use crate::{
-	service::reviewer_service::ReviewerService,
-	util::discord::invoke_ephermal
-};
+use crate::{service::reviewer_service::ReviewerService, util::discord::invoke_ephermal};
 
 pub fn register_add_reviewer() -> CreateCommand {
 	CreateCommand::new("add-reviewer")

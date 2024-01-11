@@ -47,11 +47,6 @@ impl RequestXApiClient<'_> {
 		&self,
 		get_level_request: GetLevelRequest
 	) -> Result<Option<LevelRequestData>, LevelRequestError> {
-		let mut headers = HeaderMap::new();
-		headers.insert(
-			"X-Discord-Id",
-			HeaderValue::from(get_level_request.discord_user_id)
-		);
 		let response = self
 			.web_client
 			.get(format!(
@@ -60,7 +55,6 @@ impl RequestXApiClient<'_> {
 				self.requestx_api_config.paths.request_level,
 				get_level_request.level_id
 			))
-			.headers(headers)
 			.send()
 			.await;
 
@@ -105,7 +99,7 @@ impl RequestXApiClient<'_> {
 				self.requestx_api_config.paths.review_level,
 				get_level_review.level_id
 			))
-			.headers(headers)
+			.query(&[("discord_id", get_level_review.discord_user_id)])
 			.send()
 			.await;
 

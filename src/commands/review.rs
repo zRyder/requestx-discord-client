@@ -1,14 +1,8 @@
-use serenity::{
-	all::{
-		CommandInteraction, CommandOptionType, Context, CreateCommand,
-		CreateCommandOption
-	},
+use serenity::all::{
+	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption
 };
 
-use crate::{
-	service::level_review_service::LevelReviewService,
-	util::discord::invoke_ephermal
-};
+use crate::{service::level_review_service::LevelReviewService, util::discord::invoke_ephermal};
 
 pub fn register_review() -> CreateCommand {
 	CreateCommand::new("review")
