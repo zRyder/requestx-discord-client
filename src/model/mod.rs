@@ -5,3 +5,4 @@ pub mod request_score;
 pub mod requestx_api;
 pub mod reviewer;
 pub mod serenity;
+pub mod moderator;

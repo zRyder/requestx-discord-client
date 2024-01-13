@@ -6,7 +6,7 @@ use serenity::{
 	prelude::{Context, EventHandler}
 };
 
-use crate::commands::{request_level, review, reviewer};
+use crate::commands::{request_level, review, reviewer, send_level};
 
 pub struct Handler;
 
@@ -30,6 +30,7 @@ impl EventHandler for Handler {
 					review::register_review(),
 					reviewer::register_add_reviewer(),
 					reviewer::register_remove_reviewer(),
+					send_level::register_send_level()
 				]
 			)
 			.await;
@@ -40,10 +41,11 @@ impl EventHandler for Handler {
 			println!("Received command interaction: {command:#?}");
 
 			match command.data.name.as_str() {
-				"request-level" => request_level::run(&ctx, &command).await,
+				"request-level" => request_level::run_request_level(&ctx, &command).await,
 				"review" => review::post_level_review(&ctx, &command).await,
 				"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command).await,
 				"remove-reviewer" => reviewer::run_remove_reviewer(&ctx, &command).await,
+				"send-level" => send_level::run_send_level(&ctx, &command).await,
 				_ => println!("Unreachable")
 			};
 		}

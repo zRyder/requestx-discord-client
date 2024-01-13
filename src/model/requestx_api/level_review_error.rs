@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, PartialEq)]
@@ -26,3 +27,5 @@ impl Display for LevelReviewError {
 		}
 	}
 }
+
+impl Error for LevelReviewError {}

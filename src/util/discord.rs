@@ -19,12 +19,14 @@ pub async fn create_thread(
 			&ctx.http,
 			message_id,
 			CreateThread::new(format!(
-				"Reviews for: \"{}\" ({})",
+				"\"{}\" ({})",
 				level.level_name, level.level_id
 			))
 			.audit_log_reason(&*format!(
-				"Created via request command by: {} {}",
-				command.user.name, command.user.id
+				"Created via {} command by: {} {}",
+				command.data.name,
+				command.user.name,
+				command.user.id,
 			))
 			.invitable(false)
 		)

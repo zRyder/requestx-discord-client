@@ -1,7 +1,4 @@
-use reqwest::{
-	header::{HeaderMap, HeaderValue},
-	Client, StatusCode
-};
+use reqwest::{header::{HeaderMap, HeaderValue}, Client, StatusCode, Response, Error};
 
 use crate::{
 	config::{
@@ -24,6 +21,10 @@ use crate::{
 		reviewer::{AddReviewerRequest, GetReviewerRequest, RemoveReviewerRequest}
 	}
 };
+use crate::config::client_config::CLIENT_CONFIG;
+use crate::model::moderator::Moderator;
+use crate::model::requestx_api::moderator_data::ModeratorError;
+use crate::service::auth_service::JWT;
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,
@@ -47,6 +48,8 @@ impl RequestXApiClient<'_> {
 		&self,
 		get_level_request: GetLevelRequest
 	) -> Result<Option<LevelRequestData>, LevelRequestError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
 		let response = self
 			.web_client
 			.get(format!(
@@ -55,6 +58,7 @@ impl RequestXApiClient<'_> {
 				self.requestx_api_config.paths.request_level,
 				get_level_request.level_id
 			))
+			.headers(headers)
 			.send()
 			.await;
 
@@ -87,10 +91,7 @@ impl RequestXApiClient<'_> {
 		get_level_review: GetLevelReview
 	) -> Result<Option<LevelReviewData>, LevelReviewError> {
 		let mut headers = HeaderMap::new();
-		headers.insert(
-			"X-Discord-Id",
-			HeaderValue::from(get_level_review.discord_user_id)
-		);
+		Self::get_auth_header(&mut headers).await;
 		let response = self
 			.web_client
 			.get(format!(
@@ -100,6 +101,7 @@ impl RequestXApiClient<'_> {
 				get_level_review.level_id
 			))
 			.query(&[("discord_id", get_level_review.discord_user_id)])
+			.headers(headers)
 			.send()
 			.await;
 
@@ -133,6 +135,8 @@ impl RequestXApiClient<'_> {
 	) -> Result<LevelRequestData, LevelRequestError> {
 		match serde_json::to_string(&level_request) {
 			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
 				let response = self
 					.web_client
 					.post(format!(
@@ -141,6 +145,7 @@ impl RequestXApiClient<'_> {
 						self.requestx_api_config.paths.request_level
 					))
 					.body(serialized_request)
+					.headers(headers)
 					.send()
 					.await;
 
@@ -179,6 +184,8 @@ impl RequestXApiClient<'_> {
 	) -> Result<LevelReviewData, LevelReviewError> {
 		match serde_json::to_string(&level_review) {
 			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
 				let response = self
 					.web_client
 					.post(format!(
@@ -187,6 +194,7 @@ impl RequestXApiClient<'_> {
 						self.requestx_api_config.paths.review_level
 					))
 					.body(serialized_request)
+					.headers(headers)
 					.send()
 					.await;
 
@@ -219,6 +227,8 @@ impl RequestXApiClient<'_> {
 		&self,
 		get_reviewer_request: GetReviewerRequest
 	) -> Result<Option<ReviewerData>, ReviewerError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
 		let response = self
 			.web_client
 			.get(format!(
@@ -228,6 +238,7 @@ impl RequestXApiClient<'_> {
 				get_reviewer_request.reviewer_discord_id
 			))
 			.query(&[("is_active", get_reviewer_request.is_active)])
+			.headers(headers)
 			.send()
 			.await;
 
@@ -261,6 +272,8 @@ impl RequestXApiClient<'_> {
 	) -> Result<(), ReviewerError> {
 		match serde_json::to_string(&create_reviewer_request) {
 			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
 				let response = self
 					.web_client
 					.post(format!(
@@ -268,6 +281,7 @@ impl RequestXApiClient<'_> {
 						self.requestx_api_config.base_url, self.requestx_api_config.paths.reviewer
 					))
 					.body(serialized_request)
+					.headers(headers)
 					.send()
 					.await;
 
@@ -300,6 +314,8 @@ impl RequestXApiClient<'_> {
 		&self,
 		remove_reviewer_request: RemoveReviewerRequest
 	) -> Result<(), ReviewerError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
 		let response = self
 			.web_client
 			.delete(format!(
@@ -308,6 +324,7 @@ impl RequestXApiClient<'_> {
 				self.requestx_api_config.paths.reviewer,
 				remove_reviewer_request.reviewer_discord_id
 			))
+			.headers(headers)
 			.send()
 			.await;
 
@@ -330,12 +347,58 @@ impl RequestXApiClient<'_> {
 		}
 	}
 
+	pub async fn make_send_level_request(
+		&self,
+		send_level_request: Moderator
+	) -> Result<LevelRequestData, ModeratorError> {
+		match serde_json::to_string(&send_level_request) {
+			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
+				let response = self
+					.web_client
+					.post(format!(
+						"{}{}",
+						self.requestx_api_config.base_url,
+						self.requestx_api_config.paths.send_level,
+					))
+					.body(serialized_request)
+					.headers(headers)
+					.send()
+					.await;
+
+				match response {
+					Ok(resp) => {
+						if resp.status().is_client_error() {
+							Err(RequestXApiClient::handle_moderator_client_error(resp.status()))
+						} else if resp.status().is_server_error() {
+							Err(ModeratorError::RequestXApiError)
+						} else {
+							let response_string = resp.text().await.unwrap();
+							let level_request_data: LevelRequestData =
+								serde_json::from_str(&response_string).unwrap();
+							Ok(level_request_data)
+						}
+					}
+					Err(send_level_error) => {
+						Err(ModeratorError::RequestError)
+					}
+				}
+			}
+			Err(serialize_error) => {
+				Err(ModeratorError::SerializeError)
+			}
+		}
+	}
+
 	pub async fn update_review_message_id(
 		&self,
 		update_level_review: UpdateLevelReviewMessageId
 	) -> Result<(), LevelReviewError> {
 		match serde_json::to_string(&update_level_review) {
 			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
 				let response = self
 					.web_client
 					.patch(format!(
@@ -344,6 +407,7 @@ impl RequestXApiClient<'_> {
 						self.requestx_api_config.paths.update_review_message_id
 					))
 					.body(serialized_request)
+					.headers(headers)
 					.send()
 					.await;
 
@@ -378,6 +442,8 @@ impl RequestXApiClient<'_> {
 	) -> Result<(), LevelRequestError> {
 		match serde_json::to_string(&update_level_request) {
 			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
 				let response = self
 					.web_client
 					.patch(format!(
@@ -386,6 +452,7 @@ impl RequestXApiClient<'_> {
 						self.requestx_api_config.paths.update_request_message_id
 					))
 					.body(serialized_request)
+					.headers(headers)
 					.send()
 					.await;
 
@@ -420,6 +487,8 @@ impl RequestXApiClient<'_> {
 	) -> Result<(), LevelRequestError> {
 		match serde_json::to_string(&update_level_request) {
 			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
 				let response = self
 					.web_client
 					.patch(format!(
@@ -428,6 +497,7 @@ impl RequestXApiClient<'_> {
 						self.requestx_api_config.paths.update_request_thread_id
 					))
 					.body(serialized_request)
+					.headers(headers)
 					.send()
 					.await;
 
@@ -456,6 +526,23 @@ impl RequestXApiClient<'_> {
 		}
 	}
 
+	async fn get_auth_header(headers: &mut HeaderMap) {
+		match &JWT.get_jwt().await {
+			Ok(jwt) => {
+				headers.insert(
+					&*REQUESTX_API_CONFIG.headers.requestx_discord_app_id,
+					HeaderValue::from(CLIENT_CONFIG.discord_app_id)
+				);
+				headers.insert(
+					"authorization",
+					HeaderValue::from_str(format!("Bearer {}", jwt).as_str()).unwrap()
+				);
+			}
+			Err(error) => {
+			}
+		}
+	}
+
 	fn handle_level_request_client_error(response_status: StatusCode) -> LevelRequestError {
 		if response_status.eq(&StatusCode::CONFLICT) {
 			LevelRequestError::LevelRequestExists
@@ -470,6 +557,14 @@ impl RequestXApiClient<'_> {
 
 	fn handle_reviewer_client_error(response_status: StatusCode) -> ReviewerError {
 		ReviewerError::RequestXApiError
+	}
+
+	fn handle_moderator_client_error(response_status: StatusCode) -> ModeratorError {
+		if response_status.eq(&StatusCode::NOT_FOUND) {
+			ModeratorError::LevelRequestDoesNotExist
+		} else {
+			ModeratorError::RequestXApiError
+		}
 	}
 
 	fn handle_update_request_message_id_client_error(
@@ -512,7 +607,8 @@ mod tests {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
 			request_score: RequestRating::One,
-			youtube_video_link: "Some".to_string()
+			youtube_video_link: "Some".to_string(),
+			has_requested_feedback: false,
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)
@@ -536,7 +632,8 @@ mod tests {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
 			request_score: RequestRating::One,
-			youtube_video_link: "SOME".to_string()
+			youtube_video_link: "SOME".to_string(),
+			has_requested_feedback: false,
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)

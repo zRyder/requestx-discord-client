@@ -81,7 +81,6 @@ impl<'a> LevelReviewService<'a> {
 
 										let update_level_request_thread_id =
 											UpdateLevelRequestThreadId {
-												discord_user_id: reviewer_discord_user_id,
 												level_id: level_request.level_id,
 												discord_thread_id: thread_id
 											};

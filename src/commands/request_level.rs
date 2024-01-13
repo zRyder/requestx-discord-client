@@ -53,9 +53,17 @@ pub fn register() -> CreateCommand {
 			)
 			.required(true)
 		)
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::Boolean,
+				"request-feedback",
+				"Set this to true if you would like a reviewer to potentially review your request."
+			)
+				.required(true)
+		)
 }
 
-pub async fn run(ctx: &Context, command: &CommandInteraction) {
+pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 	let level_request = LevelRequest {
 		discord_user_id: u64::from(command.user.id),
 		level_id: command
@@ -79,7 +87,15 @@ pub async fn run(ctx: &Context, command: &CommandInteraction) {
 			.value
 			.as_str()
 			.unwrap()
-			.to_string()
+			.to_string(),
+		has_requested_feedback: command
+			.data
+			.options
+			.get(3)
+			.unwrap()
+			.value
+			.as_bool()
+			.unwrap()
 	};
 
 	let service = LevelRequestService::new();
@@ -89,23 +105,25 @@ pub async fn run(ctx: &Context, command: &CommandInteraction) {
 			content = "Level has been requested successfully!".to_string();
 			invoke_ephermal(&content, &ctx, &command).await;
 
-			let request_message = MessageBuilder::new()
-				.push(format!(
-					"\"{}\" by {}\n",
+			let mut request_message = MessageBuilder::new();
+			request_message
+				.push_line(format!(
+					"\"{}\" by {}",
 					&level_data.level_name, &level_data.level_author
 				))
-				.push(format!("{}\n", &level_data.level_id))
-				.push(format!("Requested {}\n", &level_data.request_score))
-				.push(format!("{}", &level_data.youtube_video_link))
-				.build();
+				.push_line(format!("{}", &level_data.level_id))
+				.push_line(format!("Requested {}", &level_data.request_score));
+			if level_data.has_requested_feedback {
+				request_message.push_line("Feedback has been requested!");
+			}
+				request_message.push_line(format!("{}", &level_data.youtube_video_link));
 
 			match ChannelId::new(1193493680594616411)
-				.say(&ctx.http, &request_message)
+				.say(&ctx.http, &request_message.build())
 				.await
 			{
 				Ok(msg) => {
 					let update_request_message_id = UpdateLevelRequestMessageId {
-						discord_user_id: level_data.discord_id,
 						level_id: level_data.level_id,
 						discord_message_id: msg.id.get()
 					};

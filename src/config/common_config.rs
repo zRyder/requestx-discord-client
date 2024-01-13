@@ -4,11 +4,15 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use toml::de::Error;
 
-use crate::config::requestx_api_config::RequestxApiConfig;
+use crate::config::{
+	auth_config::AuthConfig, client_config::ClientConfig, requestx_api_config::RequestxApiConfig
+};
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
-	pub requestx_api_config: RequestxApiConfig
+	pub client_config: ClientConfig,
+	pub requestx_api_config: RequestxApiConfig,
+	pub auth_config: AuthConfig
 }
 
 pub fn init_app_config() -> Result<AppConfig, Error> { read_app_config() }
