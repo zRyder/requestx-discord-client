@@ -6,7 +6,8 @@ use crate::config::common_config::APP_CONFIG;
 #[derive(Debug, Deserialize)]
 pub struct RequestxApiConfig {
 	pub base_url: String,
-	pub paths: RequestxApiConfigPaths
+	pub paths: RequestxApiConfigPaths,
+	pub headers: RequestxApiHeaders
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,9 +15,16 @@ pub struct RequestxApiConfigPaths {
 	pub request_level: String,
 	pub review_level: String,
 	pub reviewer: String,
+	pub auth: String,
+	pub send_level: String,
 	pub update_request_message_id: String,
 	pub update_review_message_id: String,
 	pub update_request_thread_id: String
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RequestxApiHeaders {
+	pub requestx_discord_app_id: String
 }
 
 lazy_static! {

@@ -19,6 +19,16 @@ pub enum RequestRating {
 	Ten
 }
 
+#[derive(PartialEq, Deserialize, Debug, Copy, Clone)]
+pub enum LevelLength {
+	Tiny,
+	Short,
+	Medium,
+	Long,
+	ExtraLong,
+	Platformer
+}
+
 impl Display for RequestRating {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		match self {
@@ -92,6 +102,37 @@ impl Serialize for RequestRating {
 			RequestRating::Eight => serializer.serialize_str("Eight"),
 			RequestRating::Nine => serializer.serialize_str("Nine"),
 			RequestRating::Ten => serializer.serialize_str("Ten")
+		}
+	}
+}
+
+impl FromStr for LevelLength {
+	type Err = ();
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s {
+			"Tiny" => Ok(LevelLength::Tiny),
+			"Short" => Ok(LevelLength::Short),
+			"Medium" => Ok(LevelLength::Medium),
+			"Long" => Ok(LevelLength::Long),
+			"XL" => Ok(LevelLength::ExtraLong),
+			"ExtraLong" => Ok(LevelLength::ExtraLong),
+			"Platformer" => Ok(LevelLength::Platformer),
+			"Plat." => Ok(LevelLength::Platformer),
+			_ => Err(())
+		}
+	}
+}
+
+impl Serialize for LevelLength {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+		match self {
+			LevelLength::Tiny => serializer.serialize_str("Tiny"),
+			LevelLength::Short => serializer.serialize_str("Short"),
+			LevelLength::Medium => serializer.serialize_str("Medium"),
+			LevelLength::Long => serializer.serialize_str("Long"),
+			LevelLength::ExtraLong => serializer.serialize_str("XL"),
+			LevelLength::Platformer => serializer.serialize_str("Platformer"),
 		}
 	}
 }

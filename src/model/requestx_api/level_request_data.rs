@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::model::request_score::RequestRating;
+use crate::model::request_score::{LevelLength, RequestRating};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct LevelRequestData {
@@ -11,5 +11,7 @@ pub struct LevelRequestData {
 	pub level_name: String,
 	pub level_author: String,
 	pub request_score: RequestRating,
-	pub youtube_video_link: String
+	pub level_length: LevelLength,
+	pub youtube_video_link: String,
+	pub has_requested_feedback: bool
 }
