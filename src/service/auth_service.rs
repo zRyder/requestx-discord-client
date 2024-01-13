@@ -1,9 +1,9 @@
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, errors::Error, DecodingKey, Validation};
+use jsonwebtoken::{decode, DecodingKey, Validation};
 use lazy_static::lazy_static;
 use reqwest::{
 	header::{HeaderMap, HeaderValue},
-	Response, StatusCode
+	StatusCode
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;

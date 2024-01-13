@@ -2,7 +2,10 @@ use serenity::all::{
 	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption
 };
 
-use crate::{service::level_review_service::LevelReviewService, util::discord::invoke_ephermal};
+use crate::{
+	config::client_config::CLIENT_CONFIG, service::level_review_service::LevelReviewService,
+	util::discord::invoke_ephermal
+};
 
 pub fn register_review() -> CreateCommand {
 	CreateCommand::new("review")
@@ -26,10 +29,14 @@ pub fn register_review() -> CreateCommand {
 }
 
 pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
-	let mut content: String;
+	let content: String;
 	if !command
 		.user
-		.has_role(&ctx.http, 1192954008013385839, 1192955803418775612)
+		.has_role(
+			&ctx.http,
+			CLIENT_CONFIG.discord_guild_id,
+			CLIENT_CONFIG.discord_reviewer_role_id
+		)
 		.await
 		.unwrap()
 	{

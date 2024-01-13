@@ -125,14 +125,17 @@ impl FromStr for LevelLength {
 }
 
 impl Serialize for LevelLength {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer
+	{
 		match self {
 			LevelLength::Tiny => serializer.serialize_str("Tiny"),
 			LevelLength::Short => serializer.serialize_str("Short"),
 			LevelLength::Medium => serializer.serialize_str("Medium"),
 			LevelLength::Long => serializer.serialize_str("Long"),
 			LevelLength::ExtraLong => serializer.serialize_str("XL"),
-			LevelLength::Platformer => serializer.serialize_str("Platformer"),
+			LevelLength::Platformer => serializer.serialize_str("Platformer")
 		}
 	}
 }

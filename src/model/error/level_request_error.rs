@@ -6,8 +6,6 @@ use std::{
 #[derive(Debug, PartialEq)]
 pub enum LevelRequestError {
 	LevelRequestExists,
-	LevelRequestDoesNotExists,
-	MalformedRequestError,
 	RequestError,
 	SerializeError,
 	RequestXApiError
@@ -18,12 +16,6 @@ impl Display for LevelRequestError {
 		match self {
 			LevelRequestError::LevelRequestExists => {
 				write!(f, "Level has already been requested")
-			}
-			LevelRequestError::LevelRequestDoesNotExists => {
-				write!(f, "Level request does not exist")
-			}
-			LevelRequestError::MalformedRequestError => {
-				write!(f, "The requested level was malformed")
 			}
 			LevelRequestError::RequestError => {
 				write!(f, "Unable to make request to server")

@@ -1,12 +1,13 @@
-use std::env;
-
 use async_trait::async_trait;
 use serenity::{
 	all::{GuildId, Interaction, Ready},
 	prelude::{Context, EventHandler}
 };
 
-use crate::commands::{request_level, review, reviewer, send_level};
+use crate::{
+	commands::{request_level, review, reviewer, send_level},
+	config::client_config::CLIENT_CONFIG
+};
 
 pub struct Handler;
 
@@ -15,14 +16,9 @@ impl EventHandler for Handler {
 	async fn ready(&self, ctx: Context, ready: Ready) {
 		println!("{} is connected!", ready.user.name);
 
-		let guild_id = GuildId::new(
-			env::var("GUILD_ID")
-				.expect("Expected GUILD_ID in environment")
-				.parse()
-				.expect("GUILD_ID must be an integer")
-		);
+		let guild_id = GuildId::new(CLIENT_CONFIG.discord_guild_id);
 
-		let commands = guild_id
+		guild_id
 			.set_commands(
 				&ctx.http,
 				vec![
@@ -30,10 +26,11 @@ impl EventHandler for Handler {
 					review::register_review(),
 					reviewer::register_add_reviewer(),
 					reviewer::register_remove_reviewer(),
-					send_level::register_send_level()
+					send_level::register_send_level(),
 				]
 			)
-			.await;
+			.await
+			.expect("Unable to set commands");
 	}
 
 	async fn interaction_create(&self, ctx: Context, interaction: Interaction) {

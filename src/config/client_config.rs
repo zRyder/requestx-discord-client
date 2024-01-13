@@ -1,14 +1,14 @@
 use lazy_static::lazy_static;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use crate::config::{
-	common_config::APP_CONFIG,
-	requestx_api_config::{RequestxApiConfigPaths, RequestxApiHeaders}
-};
+use crate::config::common_config::APP_CONFIG;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ClientConfig {
-	pub discord_app_id: u64
+	pub discord_bot_token: String,
+	pub discord_app_id: u64,
+	pub discord_guild_id: u64,
+	pub discord_reviewer_role_id: u64
 }
 
 lazy_static! {

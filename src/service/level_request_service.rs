@@ -40,7 +40,7 @@ impl<'a> LevelRequestService<'a> {
 			.make_requestx_api_level_request(level_request)
 			.await
 		{
-			Ok(resp) => Ok(resp),
+			Ok(level_request_data) => Ok(level_request_data),
 			Err(error) => Err(error)
 		}
 	}

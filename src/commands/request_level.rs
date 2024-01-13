@@ -59,7 +59,7 @@ pub fn register() -> CreateCommand {
 				"request-feedback",
 				"Set this to true if you would like a reviewer to potentially review your request."
 			)
-				.required(true)
+			.required(true)
 		)
 }
 
@@ -116,7 +116,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			if level_data.has_requested_feedback {
 				request_message.push_line("Feedback has been requested!");
 			}
-				request_message.push_line(format!("{}", &level_data.youtube_video_link));
+			request_message.push_line(format!("{}", &level_data.youtube_video_link));
 
 			match ChannelId::new(1193493680594616411)
 				.say(&ctx.http, &request_message.build())
@@ -142,14 +142,6 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 		Err(error) => match error {
 			LevelRequestError::LevelRequestExists => {
 				content = "Level has already been requested.".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
-			}
-			LevelRequestError::LevelRequestDoesNotExists => {
-				content = "Level request does not exist.".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
-			}
-			LevelRequestError::MalformedRequestError => {
-				content = "Level request was not properly formatted.".to_string();
 				invoke_ephermal(&content, &ctx, &command).await;
 			}
 			LevelRequestError::RequestError => {

@@ -10,7 +10,6 @@ pub struct ReviewerData {
 
 #[derive(Debug, PartialEq)]
 pub enum ReviewerError {
-	ReviewerDoesNotExist,
 	RequestError,
 	SerializeError,
 	RequestXApiError
@@ -19,9 +18,6 @@ pub enum ReviewerError {
 impl Display for ReviewerError {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		match self {
-			ReviewerError::ReviewerDoesNotExist => {
-				write!(f, "Reviewer does not exist")
-			}
 			ReviewerError::RequestError => {
 				write!(f, "Unable to make request to server")
 			}

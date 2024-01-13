@@ -1,7 +1,12 @@
-use reqwest::{header::{HeaderMap, HeaderValue}, Client, StatusCode, Response, Error};
+use log::error;
+use reqwest::{
+	header::{HeaderMap, HeaderValue},
+	Client, StatusCode
+};
 
 use crate::{
 	config::{
+		client_config::CLIENT_CONFIG,
 		constants::{APPLICATION_JSON, CONTENT_TYPE},
 		requestx_api_config::{RequestxApiConfig, REQUESTX_API_CONFIG}
 	},
@@ -11,20 +16,17 @@ use crate::{
 			GetLevelRequest, GetLevelReview, LevelRequest, UpdateLevelRequestMessageId,
 			UpdateLevelRequestThreadId
 		},
-		level_review::{LevelReview, UpdateLevelReviewMessageId},
+		level_review::LevelReview,
+		moderator::Moderator,
 		requestx_api::{
-			level_request_data::LevelRequestData,
-			level_review_data::LevelReviewData,
-			level_review_error::LevelReviewError,
-			reviewer_data::{ReviewerData, ReviewerError}
+			level_request_data::LevelRequestData, level_review_data::LevelReviewData,
+			level_review_error::LevelReviewError, moderator_data::ModeratorError,
+			reviewer_data::ReviewerError
 		},
-		reviewer::{AddReviewerRequest, GetReviewerRequest, RemoveReviewerRequest}
-	}
+		reviewer::{AddReviewerRequest, RemoveReviewerRequest}
+	},
+	service::auth_service::JWT
 };
-use crate::config::client_config::CLIENT_CONFIG;
-use crate::model::moderator::Moderator;
-use crate::model::requestx_api::moderator_data::ModeratorError;
-use crate::service::auth_service::JWT;
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,
@@ -110,9 +112,7 @@ impl RequestXApiClient<'_> {
 				if response.status().eq(&StatusCode::NOT_FOUND) {
 					Ok(None)
 				} else if response.status().is_client_error() {
-					Err(RequestXApiClient::handle_level_review_client_error(
-						response.status()
-					))
+					Err(LevelReviewError::RequestXApiError)
 				} else if response.status().is_server_error() {
 					Err(LevelReviewError::RequestXApiError)
 				} else {
@@ -172,7 +172,7 @@ impl RequestXApiClient<'_> {
 				}
 			}
 			Err(err) => {
-				// fail
+				error!("Error serializing make level request: {}", err);
 				Err(LevelRequestError::SerializeError)
 			}
 		}
@@ -201,9 +201,7 @@ impl RequestXApiClient<'_> {
 				match response {
 					Ok(response) => {
 						if response.status().is_client_error() {
-							Err(RequestXApiClient::handle_level_review_client_error(
-								response.status()
-							))
+							Err(LevelReviewError::RequestXApiError)
 						} else if response.status().is_server_error() {
 							Err(LevelReviewError::RequestXApiError)
 						} else {
@@ -219,49 +217,9 @@ impl RequestXApiClient<'_> {
 					}
 				}
 			}
-			Err(err) => Err(LevelReviewError::SerializeError)
-		}
-	}
-
-	pub async fn make_get_reviewer_request(
-		&self,
-		get_reviewer_request: GetReviewerRequest
-	) -> Result<Option<ReviewerData>, ReviewerError> {
-		let mut headers = HeaderMap::new();
-		Self::get_auth_header(&mut headers).await;
-		let response = self
-			.web_client
-			.get(format!(
-				"{}{}/{}",
-				self.requestx_api_config.base_url,
-				self.requestx_api_config.paths.reviewer,
-				get_reviewer_request.reviewer_discord_id
-			))
-			.query(&[("is_active", get_reviewer_request.is_active)])
-			.headers(headers)
-			.send()
-			.await;
-
-		match response {
-			Ok(response) => {
-				if response.status().eq(&StatusCode::NOT_FOUND) {
-					Ok(None)
-				} else if response.status().is_client_error() {
-					Err(RequestXApiClient::handle_reviewer_client_error(
-						response.status()
-					))
-				} else if response.status().is_server_error() {
-					Err(ReviewerError::RequestXApiError)
-				} else {
-					let response_string = response.text().await.unwrap();
-					let reviewer_data: ReviewerData =
-						serde_json::from_str(&response_string).unwrap();
-					Ok(Some(reviewer_data))
-				}
-			}
-			Err(error) => {
-				println!("{}", error);
-				Err(ReviewerError::RequestError)
+			Err(err) => {
+				error!("Unable to serialize review level request: {}", err);
+				Err(LevelReviewError::SerializeError)
 			}
 		}
 	}
@@ -288,9 +246,7 @@ impl RequestXApiClient<'_> {
 				match response {
 					Ok(response) => {
 						if response.status().is_client_error() {
-							Err(RequestXApiClient::handle_reviewer_client_error(
-								response.status()
-							))
+							Err(ReviewerError::RequestXApiError)
 						} else if response.status().is_server_error() {
 							Err(ReviewerError::RequestXApiError)
 						} else {
@@ -304,7 +260,7 @@ impl RequestXApiClient<'_> {
 				}
 			}
 			Err(err) => {
-				// fail
+				error!("Unable to make add reviewer request: {}", err);
 				Err(ReviewerError::SerializeError)
 			}
 		}
@@ -331,9 +287,7 @@ impl RequestXApiClient<'_> {
 		match response {
 			Ok(response) => {
 				if response.status().is_client_error() {
-					Err(RequestXApiClient::handle_reviewer_client_error(
-						response.status()
-					))
+					Err(ReviewerError::RequestXApiError)
 				} else if response.status().is_server_error() {
 					Err(ReviewerError::RequestXApiError)
 				} else {
@@ -370,7 +324,9 @@ impl RequestXApiClient<'_> {
 				match response {
 					Ok(resp) => {
 						if resp.status().is_client_error() {
-							Err(RequestXApiClient::handle_moderator_client_error(resp.status()))
+							Err(RequestXApiClient::handle_moderator_client_error(
+								resp.status()
+							))
 						} else if resp.status().is_server_error() {
 							Err(ModeratorError::RequestXApiError)
 						} else {
@@ -381,57 +337,17 @@ impl RequestXApiClient<'_> {
 						}
 					}
 					Err(send_level_error) => {
+						error!("Unable to send level: {}", send_level_error);
 						Err(ModeratorError::RequestError)
 					}
 				}
 			}
 			Err(serialize_error) => {
+				error!(
+					"Unable to serialize send level request: {}",
+					serialize_error
+				);
 				Err(ModeratorError::SerializeError)
-			}
-		}
-	}
-
-	pub async fn update_review_message_id(
-		&self,
-		update_level_review: UpdateLevelReviewMessageId
-	) -> Result<(), LevelReviewError> {
-		match serde_json::to_string(&update_level_review) {
-			Ok(serialized_request) => {
-				let mut headers = HeaderMap::new();
-				Self::get_auth_header(&mut headers).await;
-				let response = self
-					.web_client
-					.patch(format!(
-						"{}{}",
-						self.requestx_api_config.base_url,
-						self.requestx_api_config.paths.update_review_message_id
-					))
-					.body(serialized_request)
-					.headers(headers)
-					.send()
-					.await;
-
-				match response {
-					Ok(response) => {
-						if response.status().is_client_error() {
-							Err(RequestXApiClient::handle_level_review_client_error(
-								response.status()
-							))
-						} else if response.status().is_server_error() {
-							Err(LevelReviewError::RequestXApiError)
-						} else {
-							Ok(())
-						}
-					}
-					Err(error) => {
-						println!("{}", error);
-						Err(LevelReviewError::RequestError)
-					}
-				}
-			}
-			Err(err) => {
-				// fail
-				Err(LevelReviewError::SerializeError)
 			}
 		}
 	}
@@ -475,7 +391,7 @@ impl RequestXApiClient<'_> {
 				}
 			}
 			Err(err) => {
-				// fail
+				error!("Failed to serialize update message ID request: {}", err);
 				Err(LevelRequestError::SerializeError)
 			}
 		}
@@ -520,7 +436,10 @@ impl RequestXApiClient<'_> {
 				}
 			}
 			Err(err) => {
-				// fail
+				error!(
+					"Unable to serialize update level request thread ID: {}",
+					err
+				);
 				Err(LevelRequestError::SerializeError)
 			}
 		}
@@ -539,6 +458,7 @@ impl RequestXApiClient<'_> {
 				);
 			}
 			Err(error) => {
+				error!("Error getting auth headers: {}", error)
 			}
 		}
 	}
@@ -551,29 +471,11 @@ impl RequestXApiClient<'_> {
 		}
 	}
 
-	fn handle_level_review_client_error(response_status: StatusCode) -> LevelReviewError {
-		LevelReviewError::RequestXApiError
-	}
-
-	fn handle_reviewer_client_error(response_status: StatusCode) -> ReviewerError {
-		ReviewerError::RequestXApiError
-	}
-
 	fn handle_moderator_client_error(response_status: StatusCode) -> ModeratorError {
 		if response_status.eq(&StatusCode::NOT_FOUND) {
 			ModeratorError::LevelRequestDoesNotExist
 		} else {
 			ModeratorError::RequestXApiError
-		}
-	}
-
-	fn handle_update_request_message_id_client_error(
-		response_status: StatusCode
-	) -> LevelRequestError {
-		if response_status.eq(&StatusCode::NOT_FOUND) {
-			LevelRequestError::LevelRequestDoesNotExists
-		} else {
-			LevelRequestError::RequestXApiError
 		}
 	}
 }
@@ -608,7 +510,7 @@ mod tests {
 			level_id: 97624039,
 			request_score: RequestRating::One,
 			youtube_video_link: "Some".to_string(),
-			has_requested_feedback: false,
+			has_requested_feedback: false
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)
@@ -633,7 +535,7 @@ mod tests {
 			level_id: 97624039,
 			request_score: RequestRating::One,
 			youtube_video_link: "SOME".to_string(),
-			has_requested_feedback: false,
+			has_requested_feedback: false
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)

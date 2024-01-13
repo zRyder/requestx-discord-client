@@ -1,16 +1,16 @@
 use lazy_static::lazy_static;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::config::common_config::APP_CONFIG;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RequestxApiConfig {
 	pub base_url: String,
 	pub paths: RequestxApiConfigPaths,
 	pub headers: RequestxApiHeaders
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RequestxApiConfigPaths {
 	pub request_level: String,
 	pub review_level: String,
@@ -22,7 +22,7 @@ pub struct RequestxApiConfigPaths {
 	pub update_request_thread_id: String
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RequestxApiHeaders {
 	pub requestx_discord_app_id: String
 }

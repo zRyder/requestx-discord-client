@@ -19,7 +19,7 @@ pub fn register_add_reviewer() -> CreateCommand {
 }
 
 pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
-	let mut content: String;
+	let content: String;
 	let actor_user_id = command.user.id.get();
 	if actor_user_id != 164072941645070336 {
 		content = "Forbidden".to_string();
@@ -38,7 +38,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 					content = "User has been promoted to reviewer".to_string();
 					invoke_ephermal(&content, &ctx, &command).await;
 				}
-				Err(error) => {
+				Err(_error) => {
 					content = "Unable to add reviewer".to_string();
 					invoke_ephermal(&content, &ctx, &command).await;
 				}
@@ -64,7 +64,7 @@ pub fn register_remove_reviewer() -> CreateCommand {
 }
 
 pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
-	let mut content: String;
+	let content: String;
 
 	let actor_user_id = command.user.id.get();
 	if actor_user_id != 164072941645070336 {
@@ -84,7 +84,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 					content = "User has been demoted from reviewer".to_string();
 					invoke_ephermal(&content, &ctx, &command).await;
 				}
-				Err(error) => {
+				Err(_error) => {
 					content = "Unable to remove reviewer".to_string();
 					invoke_ephermal(&content, &ctx, &command).await;
 				}

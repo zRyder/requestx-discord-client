@@ -18,17 +18,12 @@ pub async fn create_thread(
 		.create_thread_from_message(
 			&ctx.http,
 			message_id,
-			CreateThread::new(format!(
-				"\"{}\" ({})",
-				level.level_name, level.level_id
-			))
-			.audit_log_reason(&*format!(
-				"Created via {} command by: {} {}",
-				command.data.name,
-				command.user.name,
-				command.user.id,
-			))
-			.invitable(false)
+			CreateThread::new(format!("\"{}\" ({})", level.level_name, level.level_id))
+				.audit_log_reason(&*format!(
+					"Created via {} command by: {} {}",
+					command.data.name, command.user.name, command.user.id,
+				))
+				.invitable(false)
 		)
 		.await
 	{

@@ -1,3 +1,4 @@
+use log::error;
 use serenity::all::{
 	ChannelId, CommandInteraction, Context, EditMessage, Mentionable, MessageBuilder
 };
@@ -6,7 +7,7 @@ use crate::{
 	model::{
 		error::level_request_error::LevelRequestError,
 		level_request::{GetLevelRequest, GetLevelReview, UpdateLevelRequestThreadId},
-		level_review::{LevelReview, UpdateLevelReviewMessageId},
+		level_review::LevelReview,
 		requestx_api::{
 			level_review_data::LevelReviewData, level_review_error::LevelReviewError,
 			requestx_api_client::RequestXApiClient
@@ -65,7 +66,7 @@ impl<'a> LevelReviewService<'a> {
 						};
 						match self.get_level_review(get_level_review).await {
 							Ok(potential_level_review) => {
-								let mut thread_id;
+								let thread_id;
 								if let Some(thread) = level_request.discord_thread_id {
 									thread_id = thread;
 								} else {
@@ -92,6 +93,10 @@ impl<'a> LevelReviewService<'a> {
 												)
 												.await
 										{
+											error!(
+												"Unable to update level request thread ID: {}",
+												update_level_request_thread_id_error
+											);
 											return Err(LevelReviewError::RequestError);
 										}
 									} else {
@@ -107,7 +112,7 @@ impl<'a> LevelReviewService<'a> {
 									.push_line("")
 									.push_quote_line_safe(&review_contents)
 									.build();
-								let mut review_discord_message_id: u64;
+								let review_discord_message_id: u64;
 								if let Some(existing_level_review) = potential_level_review {
 									// EXISTING LEVEL REVIEW
 									if let Some(review_message_id) =
@@ -122,6 +127,10 @@ impl<'a> LevelReviewService<'a> {
 											)
 											.await
 										{
+											error!(
+												"Unable to edit review message: {}",
+												edit_message_error
+											);
 											return Err(LevelReviewError::RequestError);
 										};
 									} else {
@@ -136,6 +145,10 @@ impl<'a> LevelReviewService<'a> {
 									{
 										Ok(message) => review_discord_message_id = message.id.get(),
 										Err(send_level_review_error) => {
+											error!(
+												"Unable to send level review to Discord: {}",
+												send_level_review_error
+											);
 											return Err(LevelReviewError::RequestError);
 										}
 									};
@@ -165,10 +178,6 @@ impl<'a> LevelReviewService<'a> {
 				}
 			}
 			Err(error) => match error {
-				LevelRequestError::LevelRequestDoesNotExists => {
-					Err(LevelReviewError::LevelRequestDoesNotExists)
-				}
-				LevelRequestError::MalformedRequestError => Err(LevelReviewError::RequestError),
 				LevelRequestError::RequestError => Err(LevelReviewError::RequestError),
 				LevelRequestError::SerializeError => Err(LevelReviewError::RequestError),
 				LevelRequestError::RequestXApiError => Err(LevelReviewError::RequestXApiError),
@@ -189,20 +198,6 @@ impl<'a> LevelReviewService<'a> {
 			.await
 		{
 			Ok(resp) => Ok(resp),
-			Err(error) => Err(error)
-		}
-	}
-
-	pub async fn update_review_message_id(
-		&self,
-		update_level_review_message: UpdateLevelReviewMessageId
-	) -> Result<(), LevelReviewError> {
-		match self
-			.requestx_api_client
-			.update_review_message_id(update_level_review_message)
-			.await
-		{
-			Ok(resp) => Ok(()),
 			Err(error) => Err(error)
 		}
 	}

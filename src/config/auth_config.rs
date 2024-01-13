@@ -1,11 +1,10 @@
 use lazy_static::lazy_static;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::config::common_config::APP_CONFIG;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AuthConfig {
-	pub discord_app_id: String,
 	pub secret_token: String,
 	pub access_token: String,
 	pub auth_header_name: String,

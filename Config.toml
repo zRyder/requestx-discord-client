@@ -1,0 +1,27 @@
+[client_config]
+discord_bot_token = "{{REQUESTX_DISCORD_BOT_TOKEN}}"
+discord_app_id = "{{REQUESTX_DISCORD_APP_ID}}"
+discord_guild_id = "{{REQUESTX_DISCORD_GUILD_ID}}"
+discord_reviewer_role_id = "{{REQUESTX_DISCORD_ROLE_ID}}"
+
+[requestx_api_config]
+base_url = "http://127.0.0.1:8000"
+
+[requestx_api_config.paths]
+request_level = "/api/v1/request_level"
+review_level = "/api/v1/review_level"
+reviewer = "/api/v1/reviewer"
+auth = "/api/v1/auth"
+send_level = "/api/v1/internal/send_level"
+update_request_message_id = "/api/v1/internal/request_level"
+update_review_message_id = "/api/v1/internal/review_level"
+update_request_thread_id = "/api/v1/internal/request_level/thread"
+
+[requestx_api_config.headers]
+requestx_discord_app_id = "X-REQUESTX-DISCORD-APP-ID"
+
+[auth_config]
+auth_header_name = "X-REQUESTX-ACCESS-TOKEN"
+access_token = "{{REQUESTX_ACCESS_TOKEN}}"
+secret_token = "{{REQUESTX_SECRET_TOKEN}}"
+token_buffer = 5

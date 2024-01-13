@@ -11,13 +11,17 @@ tokio = { version = "1.35.1", features = ["rt-multi-thread"] }
 dotenv = "0.15.0"
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.111"
-toml = "0.8.8"
 lazy_static = "1.4.0"
 reqwest = "0.11.23"
 chrono = "0.4.31"
 url = "2.5.0"
 async-trait = "0.1.77"
 jsonwebtoken = "9.2.0"
+log4rs = "1.2.0"
+envfile = "0.2.1"
+config = "0.13.4"
+handlebars = "5.0.0"
+log = "0.4.20"
 
 [dev-dependencies]
 httpmock = {version = "0.7.0-rc.1", features = ["remote"]}
