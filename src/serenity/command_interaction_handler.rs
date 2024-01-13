@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::debug;
 use serenity::{
 	all::{GuildId, Interaction, Ready},
 	prelude::{Context, EventHandler}
@@ -35,7 +36,7 @@ impl EventHandler for Handler {
 
 	async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
 		if let Interaction::Command(command) = interaction {
-			println!("Received command interaction: {command:#?}");
+			debug!("Received command interaction: {command:#?}");
 
 			match command.data.name.as_str() {
 				"request-level" => request_level::run_request_level(&ctx, &command).await,

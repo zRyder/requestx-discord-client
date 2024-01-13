@@ -13,5 +13,6 @@ pub struct LevelRequestData {
 	pub request_score: RequestRating,
 	pub level_length: LevelLength,
 	pub youtube_video_link: String,
-	pub has_requested_feedback: bool
+	pub has_requested_feedback: bool,
+	pub notify: bool
 }

@@ -1,9 +1,16 @@
-use crate::model::{
-	error::level_request_error::LevelRequestError,
-	level_request::{
-		GetLevelRequest, LevelRequest, UpdateLevelRequestMessageId, UpdateLevelRequestThreadId
-	},
-	requestx_api::{level_request_data::LevelRequestData, requestx_api_client::RequestXApiClient}
+use log::warn;
+
+use crate::{
+	config::constants::YOUTUBE_LINK_REGEX,
+	model::{
+		error::level_request_error::LevelRequestError,
+		level_request::{
+			GetLevelRequest, LevelRequest, UpdateLevelRequestMessageId, UpdateLevelRequestThreadId
+		},
+		requestx_api::{
+			level_request_data::LevelRequestData, requestx_api_client::RequestXApiClient
+		}
+	}
 };
 
 pub struct LevelRequestService<'a> {
@@ -35,6 +42,10 @@ impl<'a> LevelRequestService<'a> {
 		&self,
 		level_request: LevelRequest
 	) -> Result<LevelRequestData, LevelRequestError> {
+		if !Self::is_valid_youtube_link(&level_request.youtube_video_link) {
+			warn!("Invalid link: {}", &level_request.youtube_video_link);
+			return Err(LevelRequestError::SerializeError);
+		}
 		match self
 			.requestx_api_client
 			.make_requestx_api_level_request(level_request)
@@ -71,5 +82,15 @@ impl<'a> LevelRequestService<'a> {
 			Ok(()) => Ok(()),
 			Err(error) => Err(error)
 		}
+	}
+
+	fn is_valid_youtube_link(youtube_link: &str) -> bool {
+		let regex = regex::RegexBuilder::new(YOUTUBE_LINK_REGEX)
+			.case_insensitive(true)
+			.multi_line(true)
+			.build()
+			.unwrap();
+
+		regex.is_match(youtube_link)
 	}
 }

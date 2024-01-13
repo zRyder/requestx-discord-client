@@ -22,6 +22,7 @@ envfile = "0.2.1"
 config = "0.13.4"
 handlebars = "5.0.0"
 log = "0.4.20"
+regex = "1.10.2"
 
 [dev-dependencies]
 httpmock = {version = "0.7.0-rc.1", features = ["remote"]}

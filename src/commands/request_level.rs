@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use log::error;
 use serenity::{
 	all::{ChannelId, CommandInteraction, CommandOptionType, MessageBuilder},
 	builder::{CreateCommand, CreateCommandOption},
@@ -57,7 +58,15 @@ pub fn register() -> CreateCommand {
 			CreateCommandOption::new(
 				CommandOptionType::Boolean,
 				"request-feedback",
-				"Set this to true if you would like a reviewer to potentially review your request."
+				"Request for reviewers to potentially review your request."
+			)
+			.required(true)
+		)
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::Boolean,
+				"notify",
+				"Notify when a review has been made or if the level has been sent."
 			)
 			.required(true)
 		)
@@ -92,6 +101,14 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			.data
 			.options
 			.get(3)
+			.unwrap()
+			.value
+			.as_bool()
+			.unwrap(),
+		notify: command
+			.data
+			.options
+			.get(4)
 			.unwrap()
 			.value
 			.as_bool()
@@ -131,11 +148,11 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 						.update_request_message_id(update_request_message_id)
 						.await
 					{
-						println!("Error updating message ID: {error:?}");
+						error!("Error updating message ID: {error:?}");
 					}
 				}
 				Err(error) => {
-					println!("Error sending message: {error:?}");
+					error!("Error sending message: {error:?}");
 				}
 			}
 		}

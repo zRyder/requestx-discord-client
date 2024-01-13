@@ -1,8 +1,9 @@
 use std::str::FromStr;
 
+use log::error;
 use serenity::all::{
 	ChannelId, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-	MessageBuilder
+	Mentionable, MessageBuilder, UserId
 };
 
 use crate::{
@@ -127,6 +128,14 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 				}
 			}
 
+			if level_request_data.notify {
+				send_level_message.push_line("");
+				send_level_message.push_line(format!(
+					"{}",
+					UserId::new(level_request_data.discord_id).mention()
+				));
+			}
+
 			match ChannelId::new(level_request_data.discord_thread_id.unwrap())
 				.say(&ctx.http, &send_level_message.build())
 				.await
@@ -136,7 +145,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 					invoke_ephermal(&content, &ctx, &command).await;
 				}
 				Err(error) => {
-					println!("{}", error);
+					error!("{}", error);
 					content = "Error sending message.".to_string();
 					invoke_ephermal(&content, &ctx, &command).await;
 				}

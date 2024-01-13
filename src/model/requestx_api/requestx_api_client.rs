@@ -82,7 +82,7 @@ impl RequestXApiClient<'_> {
 				}
 			}
 			Err(error) => {
-				println!("{}", error);
+				error!("{}", error);
 				Err(LevelRequestError::RequestError)
 			}
 		}
@@ -123,7 +123,7 @@ impl RequestXApiClient<'_> {
 				}
 			}
 			Err(error) => {
-				println!("{}", error);
+				error!("{}", error);
 				Err(LevelReviewError::RequestError)
 			}
 		}
@@ -161,12 +161,11 @@ impl RequestXApiClient<'_> {
 							let response_string = response.text().await.unwrap();
 							let level_data: LevelRequestData =
 								serde_json::from_str(&response_string).unwrap();
-							println!("{:?}", level_data);
 							Ok(level_data)
 						}
 					}
 					Err(error) => {
-						println!("{}", error);
+						error!("{}", error);
 						Err(LevelRequestError::RequestError)
 					}
 				}
@@ -212,7 +211,7 @@ impl RequestXApiClient<'_> {
 						}
 					}
 					Err(error) => {
-						println!("{}", error);
+						error!("{}", error);
 						Err(LevelReviewError::RequestError)
 					}
 				}
@@ -254,7 +253,7 @@ impl RequestXApiClient<'_> {
 						}
 					}
 					Err(error) => {
-						println!("{}", error);
+						error!("{}", error);
 						Err(ReviewerError::RequestError)
 					}
 				}
@@ -295,7 +294,7 @@ impl RequestXApiClient<'_> {
 				}
 			}
 			Err(error) => {
-				println!("{}", error);
+				error!("{}", error);
 				Err(ReviewerError::RequestError)
 			}
 		}
@@ -385,7 +384,7 @@ impl RequestXApiClient<'_> {
 						}
 					}
 					Err(error) => {
-						println!("{}", error);
+						error!("{}", error);
 						Err(LevelRequestError::RequestError)
 					}
 				}
@@ -430,7 +429,7 @@ impl RequestXApiClient<'_> {
 						}
 					}
 					Err(error) => {
-						println!("{}", error);
+						error!("{}", error);
 						Err(LevelRequestError::RequestError)
 					}
 				}

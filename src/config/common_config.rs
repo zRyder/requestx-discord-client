@@ -43,7 +43,7 @@ lazy_static! {
 		match read_app_config() {
 			Ok(common_config) => common_config,
 			Err(err) => {
-				println!("{}", err);
+				eprintln!("{}", err);
 				process::exit(1)
 			}
 		}

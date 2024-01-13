@@ -1,9 +1,10 @@
 use log::error;
 use serenity::all::{
-	ChannelId, CommandInteraction, Context, EditMessage, Mentionable, MessageBuilder
+	ChannelId, CommandInteraction, Context, EditMessage, Mentionable, MessageBuilder, UserId
 };
 
 use crate::{
+	config::client_config::CLIENT_CONFIG,
 	model::{
 		error::level_request_error::LevelRequestError,
 		level_request::{GetLevelRequest, GetLevelReview, UpdateLevelRequestThreadId},
@@ -58,6 +59,11 @@ impl<'a> LevelReviewService<'a> {
 		{
 			Ok(potential_level_request) => {
 				if let Some(level_request) = potential_level_request {
+					if !level_request.has_requested_feedback
+						&& reviewer_discord_user_id.ne(&CLIENT_CONFIG.discord_bot_admin_id)
+					{
+						return Ok("The user has not requested feedback for this level".to_string());
+					}
 					if let Some(level_request_message_id) = level_request.discord_message_id {
 						// Request Message Exists
 						let get_level_review = GetLevelReview {
@@ -104,14 +110,23 @@ impl<'a> LevelReviewService<'a> {
 									}
 								}
 
-								let review_message = MessageBuilder::new()
+								let mut review_message = MessageBuilder::new();
+								review_message
 									.push_bold_line(format!(
 										"Review by {}",
 										command.user.id.mention()
 									))
 									.push_line("")
-									.push_quote_line_safe(&review_contents)
-									.build();
+									.push_quote_line_safe(&review_contents);
+
+								if level_request.notify {
+									review_message.push_line("");
+									review_message.push_line(format!(
+										"{}",
+										UserId::new(level_request.discord_id).mention()
+									));
+								}
+
 								let review_discord_message_id: u64;
 								if let Some(existing_level_review) = potential_level_review {
 									// EXISTING LEVEL REVIEW
@@ -123,7 +138,7 @@ impl<'a> LevelReviewService<'a> {
 											.edit_message(
 												&ctx.http,
 												review_message_id,
-												EditMessage::new().content(&review_message)
+												EditMessage::new().content(&review_message.build())
 											)
 											.await
 										{
@@ -140,7 +155,7 @@ impl<'a> LevelReviewService<'a> {
 									}
 								} else {
 									match ChannelId::new(thread_id)
-										.say(&ctx.http, &review_message)
+										.say(&ctx.http, &review_message.build())
 										.await
 									{
 										Ok(message) => review_discord_message_id = message.id.get(),

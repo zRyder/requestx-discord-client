@@ -22,7 +22,8 @@ pub struct LevelRequest {
 	#[serde(rename = "request_rating")]
 	pub request_score: RequestRating,
 	pub youtube_video_link: String,
-	pub has_requested_feedback: bool
+	pub has_requested_feedback: bool,
+	pub notify: bool
 }
 
 #[derive(Serialize)]
