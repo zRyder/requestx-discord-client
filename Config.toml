@@ -7,7 +7,7 @@ discord_bot_admin_id = "{{REQUESTX_DISCORD_BOT_ADMIN_ID}}"
 discord_log_channel_id = "{{REQUESTX_DISCORD_LOG_CHANNEL_ID}}"
 
 [requestx_api_config]
-base_url = "http://127.0.0.1:8000"
+base_url = "{{REQUESTX_BASE_URL}}"
 
 [requestx_api_config.paths]
 request_level = "/api/v1/request_level"
