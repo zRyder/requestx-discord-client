@@ -15,6 +15,7 @@ use crate::{
 	service::moderator_service::ModeratorService,
 	util::discord::invoke_ephermal
 };
+use crate::util::discord::log_to_discord;
 
 pub fn register_send_level() -> CreateCommand {
 	CreateCommand::new("send-level")
@@ -143,6 +144,17 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 				Ok(_msg) => {
 					content = "Level has been sent!".to_string();
 					invoke_ephermal(&content, &ctx, &command).await;
+
+					{
+						let mut log_message = MessageBuilder::new();
+						log_message.push_line("Level has been sent to RobTop".to_string());
+						log_message.push_codeblock(format!("{:?}", level_request_data), Some("rust"));
+						log_message.push_codeblock(format!("{:?}", send_level_request), Some("rust"));
+						log_to_discord(
+							log_message.build(),
+							ctx.clone(),
+						).await
+					}
 				}
 				Err(error) => {
 					error!("{}", error);
@@ -151,22 +163,34 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 				}
 			}
 		}
-		Err(send_level_error) => match send_level_error {
-			ModeratorError::LevelRequestDoesNotExist => {
-				content = "Level request does not exist.".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
+		Err(send_level_error) => {
+			match send_level_error {
+				ModeratorError::LevelRequestDoesNotExist => {
+					content = "Level request does not exist.".to_string();
+					invoke_ephermal(&content, &ctx, &command).await;
+				}
+				ModeratorError::RequestXApiError => {
+					content = "There was an error making the request".to_string();
+					invoke_ephermal(&content, &ctx, &command).await;
+				}
+				ModeratorError::SerializeError => {
+					content = "Unable to serialize request".to_string();
+					invoke_ephermal(&content, &ctx, &command).await;
+				}
+				ModeratorError::RequestError => {
+					content = "There was an error making the request".to_string();
+					invoke_ephermal(&content, &ctx, &command).await;
+				}
 			}
-			ModeratorError::RequestXApiError => {
-				content = "There was an error making the request".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
-			}
-			ModeratorError::SerializeError => {
-				content = "Unable to serialize request".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
-			}
-			ModeratorError::RequestError => {
-				content = "There was an error making the request".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
+
+			{
+				let mut log_message = MessageBuilder::new();
+				log_message.push_line("Unable to send level to RobTop".to_string());
+				log_message.push_codeblock(format!("{:?}", send_level_request), Some("rust"));
+				log_to_discord(
+					log_message.build(),
+					ctx.clone(),
+				).await
 			}
 		}
 	}

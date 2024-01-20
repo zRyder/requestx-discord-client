@@ -16,6 +16,7 @@ use crate::{
 	service::level_request_service::LevelRequestService,
 	util::discord::invoke_ephermal
 };
+use crate::util::discord::log_to_discord;
 
 pub fn register() -> CreateCommand {
 	CreateCommand::new("request-level")
@@ -150,28 +151,52 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 					{
 						error!("Error updating message ID: {error:?}");
 					}
+
+					{
+						let mut log_message = MessageBuilder::new();
+						log_message.push_bold(format!("{} ", command.user.name));
+						log_message.push_line(format!("({}) has requested a level", command.user.id));
+						log_message.push_codeblock(format!("{:?}", &level_data), Some("rust"));
+							log_to_discord(
+								log_message.build(),
+								ctx.clone(),
+							).await
+					}
 				}
 				Err(error) => {
 					error!("Error sending message: {error:?}");
 				}
 			}
 		}
-		Err(error) => match error {
-			LevelRequestError::LevelRequestExists => {
-				content = "Level has already been requested.".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
+		Err(error) => {
+			match error {
+				LevelRequestError::LevelRequestExists => {
+					content = "Level has already been requested.".to_string();
+					invoke_ephermal(&content, &ctx, &command).await;
+				}
+				LevelRequestError::RequestError => {
+					content = "There was an error making the request.".to_string();
+					invoke_ephermal(&content, &ctx, &command).await;
+				}
+				LevelRequestError::SerializeError => {
+					content = "There was an error making the request.".to_string();
+					invoke_ephermal(&content, &ctx, &command).await;
+				}
+				LevelRequestError::RequestXApiError => {
+					content = "There was an error making the request.".to_string();
+					invoke_ephermal(&content, &ctx, &command).await;
+				}
 			}
-			LevelRequestError::RequestError => {
-				content = "There was an error making the request.".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
-			}
-			LevelRequestError::SerializeError => {
-				content = "There was an error making the request.".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
-			}
-			LevelRequestError::RequestXApiError => {
-				content = "There was an error making the request.".to_string();
-				invoke_ephermal(&content, &ctx, &command).await;
+
+			{
+				let mut log_message = MessageBuilder::new();
+				log_message.push_bold(format!("{} ", command.user.name));
+				log_message.push_line(format!("({}) cause an error when requesting a level", command.user.id));
+				log_message.push_codeblock(format!("{:?}", error), Some("rust"));
+				log_to_discord(
+					log_message.build(),
+					ctx.clone(),
+				).await
 			}
 		}
 	}

@@ -9,13 +9,15 @@ mod util;
 use std::process;
 
 use ::serenity::{prelude::GatewayIntents, Client};
+use log::error;
 
 use crate::config::common_config::{init_app_config, APP_CONFIG};
 
 #[tokio::main]
 async fn main() {
+	log4rs::init_file("log4rs.yml", Default::default()).unwrap();
 	if let Err(error) = init_app_config() {
-		eprintln!("Error loading app config: {}", error);
+		error!("Error loading app config: {}", error);
 		process::exit(1)
 	} else {
 		let mut client = Client::builder(
@@ -26,12 +28,8 @@ async fn main() {
 		.await
 		.expect("Error creating client");
 
-		// Finally, start a single shard, and start listening to events.
-		//
-		// Shards will automatically attempt to reconnect, and will perform exponential
-		// backoff until it reconnects.
 		if let Err(why) = client.start().await {
-			println!("Client error: {why:?}");
+			error!("Client error: {why:?}");
 		}
 	}
 }

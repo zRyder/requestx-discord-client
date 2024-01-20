@@ -1,11 +1,10 @@
-use serenity::all::{
-	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption
-};
+use serenity::all::{CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, MessageBuilder};
 
 use crate::{
 	config::client_config::CLIENT_CONFIG, service::level_review_service::LevelReviewService,
 	util::discord::invoke_ephermal
 };
+use crate::util::discord::log_to_discord;
 
 pub fn register_review() -> CreateCommand {
 	CreateCommand::new("review")
@@ -74,7 +73,22 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 			)
 			.await
 		{
-			Ok(message_string) => invoke_ephermal(&message_string, &ctx, &command).await,
+			Ok(message_string) => {
+				{
+					let mut log_message = MessageBuilder::new();
+					log_message.push_bold(format!("{} ", command.user.name));
+					log_message.push_line(format!(
+						"({}) left a review on level request ID: {}",
+						command.user.id,
+						level_id)
+					);
+					log_to_discord(
+						log_message.build(),
+						ctx.clone(),
+					).await
+				}
+				invoke_ephermal(&message_string, &ctx, &command).await
+			}
 			Err(level_review_error) => {
 				invoke_ephermal(&level_review_error.to_string(), &ctx, &command).await
 			}

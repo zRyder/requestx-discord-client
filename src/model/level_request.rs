@@ -14,7 +14,7 @@ pub struct GetLevelReview {
 	pub level_id: u64
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct LevelRequest {
 	#[serde(rename = "discord_id")]
 	pub discord_user_id: u64,
