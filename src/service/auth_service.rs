@@ -42,7 +42,10 @@ impl JWT {
 					*jwt_lock = Some(jwt.clone());
 					Ok(jwt)
 				}
-				Err(auth_error) => Err(auth_error)
+				Err(auth_error) => {
+					error!("Authentication failed: {}", auth_error);
+					Err(auth_error)
+				}
 			}
 		} else {
 			Ok(jwt_lock.as_ref().unwrap().clone())
@@ -98,7 +101,7 @@ impl JWT {
 				}
 			}
 			Err(err) => {
-				error!("Authentication failed: {}", err);
+				error!("Error calling RequestX API to authenticate: {}", err);
 				Err(AuthError::AuthenticationFailed)
 			}
 		}
