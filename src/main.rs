@@ -9,7 +9,7 @@ mod util;
 use std::process;
 
 use ::serenity::{prelude::GatewayIntents, Client};
-use log::error;
+use log::{error, info};
 
 use crate::config::common_config::{init_app_config, APP_CONFIG};
 

@@ -17,7 +17,7 @@ chrono = "0.4.31"
 url = "2.5.0"
 async-trait = "0.1.77"
 jsonwebtoken = "9.2.0"
-log4rs = "1.2.0"
+log4rs = {version = "1.2.0", features = ["json_encoder", "json_format", "serde_json"]}
 envfile = "0.2.1"
 config = "0.13.4"
 handlebars = "5.0.0"
