@@ -1,6 +1,7 @@
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use lazy_static::lazy_static;
+use log::{debug, warn};
 use reqwest::{
 	header::{HeaderMap, HeaderValue},
 	StatusCode
@@ -35,6 +36,7 @@ impl JWT {
 			.as_ref()
 			.map_or(true, |token| Self::is_expired(token))
 		{
+			warn!("JWT is expired or null, generating new token");
 			match Self::generate_token().await {
 				Ok(jwt) => {
 					*jwt_lock = Some(jwt.clone());
@@ -72,7 +74,7 @@ impl JWT {
 			&*AUTH_CONFIG.auth_header_name,
 			HeaderValue::from_static(&AUTH_CONFIG.access_token)
 		);
-
+		debug!("Calling RequestX API at {}", &REQUESTX_API_CONFIG.paths.auth);
 		match requestx_auth_client
 			.post(format!(
 				"{}{}",
