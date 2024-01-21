@@ -42,7 +42,7 @@ pub async fn invoke_ephermal(content: &str, ctx: &Context, command: &CommandInte
 		.content(content);
 	let builder = CreateInteractionResponse::Message(data);
 	if let Err(err) = command.create_response(&ctx.http, builder).await {
-		println!("Cannot respond to slash command: {err}");
+		error!("Cannot respond to slash command: {err}");
 	}
 }
 

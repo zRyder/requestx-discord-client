@@ -82,7 +82,6 @@ impl JWT {
 			"Calling RequestX API at {}",
 			&REQUESTX_API_CONFIG.paths.auth
 		);
-		println!("{:?}", headers);
 		match requestx_auth_client
 			.post(format!(
 				"{}{}",

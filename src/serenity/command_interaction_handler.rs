@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use log::debug;
+use log::{debug, info};
 use serenity::{
 	all::{GuildId, Interaction, Ready},
 	prelude::{Context, EventHandler}
@@ -15,7 +15,7 @@ pub struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
 	async fn ready(&self, ctx: Context, ready: Ready) {
-		println!("{} is connected!", ready.user.name);
+		info!("{} is connected!", ready.user.name);
 
 		let guild_id = GuildId::new(CLIENT_CONFIG.discord_guild_id);
 

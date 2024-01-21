@@ -493,7 +493,6 @@ mod tests {
 	};
 
 	async fn init_mock_server() -> MockServer {
-		println!("{}", &*REQUESTX_API_CONFIG.base_url);
 		let url = url::Url::parse(&*REQUESTX_API_CONFIG.base_url).unwrap();
 		let host = url.host_str().unwrap();
 		let port = url.port().unwrap();
@@ -503,7 +502,6 @@ mod tests {
 	#[tokio::test]
 	async fn level_request_should_succeed() {
 		let server = init_mock_server().await;
-		println!("{}", server.base_url());
 		let test_request = LevelRequest {
 			discord_user_id: 164072941645070336,
 			level_id: 97624039,
