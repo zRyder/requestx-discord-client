@@ -10,7 +10,7 @@ pub struct ClientConfig {
 	pub discord_guild_id: u64,
 	pub discord_reviewer_role_id: u64,
 	pub discord_bot_admin_id: u64,
-	pub discord_log_channel_id: u64,
+	pub discord_log_channel_id: u64
 }
 
 lazy_static! {

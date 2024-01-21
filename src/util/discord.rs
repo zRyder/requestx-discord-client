@@ -6,11 +6,11 @@ use serenity::{
 	},
 	Error
 };
-use tokio::sync::mpsc;
-use tokio::task;
-use crate::config::client_config::CLIENT_CONFIG;
+use tokio::{sync::mpsc, task};
 
-use crate::model::requestx_api::level_request_data::LevelRequestData;
+use crate::{
+	config::client_config::CLIENT_CONFIG, model::requestx_api::level_request_data::LevelRequestData
+};
 
 pub async fn create_thread(
 	ctx: &Context,
@@ -50,8 +50,12 @@ async fn discord_log(mut rx: mpsc::Receiver<(String, Context)>) {
 	while let Some(data) = rx.recv().await {
 		if let Err(logger_error) = ChannelId::new(CLIENT_CONFIG.discord_log_channel_id)
 			.say(&data.1.http, &data.0)
-			.await {
-			error!("Unable to log event {} to Discord: {}", data.0, logger_error);
+			.await
+		{
+			error!(
+				"Unable to log event {} to Discord: {}",
+				data.0, logger_error
+			);
 		}
 	}
 }

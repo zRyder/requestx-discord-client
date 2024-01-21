@@ -1,7 +1,12 @@
-use serenity::all::{CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, MessageBuilder, ResolvedOption, ResolvedValue};
+use serenity::all::{
+	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+	MessageBuilder, ResolvedOption, ResolvedValue
+};
 
-use crate::{service::reviewer_service::ReviewerService, util::discord::invoke_ephermal};
-use crate::util::discord::log_to_discord;
+use crate::{
+	service::reviewer_service::ReviewerService,
+	util::discord::{invoke_ephermal, log_to_discord}
+};
 
 pub fn register_add_reviewer() -> CreateCommand {
 	CreateCommand::new("add-reviewer")
@@ -40,10 +45,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 						let mut log_message = MessageBuilder::new();
 						log_message.push_bold(format!("{} ", &user.name));
 						log_message.push_line(format!("({}) has been promoted Reviewer", &user.id));
-						log_to_discord(
-							log_message.build(),
-							ctx.clone(),
-						).await
+						log_to_discord(log_message.build(), ctx.clone()).await
 					}
 				}
 				Err(error) => {
@@ -56,10 +58,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 						log_message.push_bold(format!("{} ", &user.name));
 						log_message.push_line(format!("({}) to reviewer", &user.id));
 						log_message.push_codeblock(format!("{:?}", error), Some("rust"));
-						log_to_discord(
-							log_message.build(),
-							ctx.clone(),
-						).await
+						log_to_discord(log_message.build(), ctx.clone()).await
 					}
 				}
 			}
@@ -107,11 +106,9 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 					{
 						let mut log_message = MessageBuilder::new();
 						log_message.push_bold(format!("{} ", &user.name));
-						log_message.push_line(format!("({}) has been demoted from Reviewer", &user.id));
-						log_to_discord(
-							log_message.build(),
-							ctx.clone(),
-						).await
+						log_message
+							.push_line(format!("({}) has been demoted from Reviewer", &user.id));
+						log_to_discord(log_message.build(), ctx.clone()).await
 					}
 				}
 				Err(error) => {
@@ -125,10 +122,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 							log_message.push_bold(format!("{} ", &user.name));
 							log_message.push_line(format!("({}) from reviewer", &user.id));
 							log_message.push_codeblock(format!("{:?}", error), Some("rust"));
-							log_to_discord(
-								log_message.build(),
-								ctx.clone(),
-							).await
+							log_to_discord(log_message.build(), ctx.clone()).await
 						}
 					}
 				}

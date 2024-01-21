@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 
 use crate::{
 	config::{
-		auth_config::AUTH_CONFIG, client_config::CLIENT_CONFIG,
+		auth_config::AUTH_CONFIG, client_config::CLIENT_CONFIG, constants::CONTENT_LENGTH,
 		requestx_api_config::REQUESTX_API_CONFIG
 	},
 	model::error::auth_error::AuthError
@@ -77,7 +77,12 @@ impl JWT {
 			&*AUTH_CONFIG.auth_header_name,
 			HeaderValue::from_static(&AUTH_CONFIG.access_token)
 		);
-		debug!("Calling RequestX API at {}", &REQUESTX_API_CONFIG.paths.auth);
+		headers.insert(CONTENT_LENGTH, HeaderValue::from(0));
+		debug!(
+			"Calling RequestX API at {}",
+			&REQUESTX_API_CONFIG.paths.auth
+		);
+		println!("{:?}", headers);
 		match requestx_auth_client
 			.post(format!(
 				"{}{}",
