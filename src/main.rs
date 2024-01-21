@@ -20,6 +20,7 @@ async fn main() {
 		error!("Error loading app config: {}", error);
 		process::exit(1)
 	} else {
+		println!("{:?}", &APP_CONFIG.auth_config);
 		let mut client = Client::builder(
 			&APP_CONFIG.client_config.discord_bot_token,
 			GatewayIntents::empty()
@@ -27,7 +28,6 @@ async fn main() {
 		.event_handler(serenity::command_interaction_handler::Handler)
 		.await
 		.expect("Error creating client");
-
 		if let Err(why) = client.start().await {
 			error!("Client error: {why:?}");
 		}

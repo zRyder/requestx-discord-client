@@ -1,7 +1,7 @@
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use lazy_static::lazy_static;
-use log::{debug, warn};
+use log::{debug, error, warn};
 use reqwest::{
 	header::{HeaderMap, HeaderValue},
 	StatusCode
@@ -97,7 +97,10 @@ impl JWT {
 					Err(AuthError::Unauthorized)
 				}
 			}
-			Err(_err) => Err(AuthError::AuthenticationFailed)
+			Err(err) => {
+				error!("Authentication failed: {}", err);
+				Err(AuthError::AuthenticationFailed)
+			}
 		}
 	}
 }
