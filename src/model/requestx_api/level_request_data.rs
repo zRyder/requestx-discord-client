@@ -8,10 +8,10 @@ pub struct LevelRequestData {
 	pub discord_id: u64,
 	pub discord_message_id: Option<u64>,
 	pub discord_thread_id: Option<u64>,
-	pub level_name: String,
-	pub level_author: String,
+	pub level_name: Option<String>,
+	pub level_author: Option<String>,
+	pub level_length: Option<LevelLength>,
 	pub request_score: RequestRating,
-	pub level_length: LevelLength,
 	pub youtube_video_link: String,
 	pub has_requested_feedback: bool,
 	pub notify: bool

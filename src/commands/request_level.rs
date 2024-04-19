@@ -9,7 +9,6 @@ use serenity::{
 
 use crate::{
 	model::{
-		error::level_request_error::LevelRequestError,
 		level_request::{LevelRequest, UpdateLevelRequestMessageId},
 		request_score::RequestRating
 	},
@@ -123,11 +122,14 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			invoke_ephermal(&content, &ctx, &command).await;
 
 			let mut request_message = MessageBuilder::new();
+			if let (Some(level_name), Some(level_creator_name)) = (&level_data.level_name, &level_data.level_author) {
+				request_message
+					.push_line(format!(
+						"\"{}\" by {}",
+						level_name, level_creator_name
+					));
+			}
 			request_message
-				.push_line(format!(
-					"\"{}\" by {}",
-					&level_data.level_name, &level_data.level_author
-				))
 				.push_line(format!("{}", &level_data.level_id))
 				.push_line(format!("Requested {}", &level_data.request_score));
 			if level_data.has_requested_feedback {
@@ -166,24 +168,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			}
 		}
 		Err(error) => {
-			match error {
-				LevelRequestError::LevelRequestExists => {
-					content = "Level has already been requested.".to_string();
-					invoke_ephermal(&content, &ctx, &command).await;
-				}
-				LevelRequestError::RequestError => {
-					content = "There was an error making the request.".to_string();
-					invoke_ephermal(&content, &ctx, &command).await;
-				}
-				LevelRequestError::SerializeError => {
-					content = "There was an error making the request.".to_string();
-					invoke_ephermal(&content, &ctx, &command).await;
-				}
-				LevelRequestError::RequestXApiError => {
-					content = "There was an error making the request.".to_string();
-					invoke_ephermal(&content, &ctx, &command).await;
-				}
-			}
+			invoke_ephermal(&error.to_string(), &ctx, &command).await;
 
 			{
 				let mut log_message = MessageBuilder::new();

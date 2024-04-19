@@ -6,11 +6,11 @@ use serenity::all::{
 use crate::{
 	config::client_config::CLIENT_CONFIG,
 	model::{
-		error::level_request_error::LevelRequestError,
 		level_request::{GetLevelRequest, GetLevelReview, UpdateLevelRequestThreadId},
 		level_review::LevelReview,
 		requestx_api::{
-			level_review_data::LevelReviewData, level_review_error::LevelReviewError,
+			error::{level_request_error::LevelRequestError, level_review_error::LevelReviewError},
+			level_review_data::LevelReviewData,
 			requestx_api_client::RequestXApiClient
 		}
 	},
@@ -196,7 +196,7 @@ impl<'a> LevelReviewService<'a> {
 				LevelRequestError::RequestError => Err(LevelReviewError::RequestError),
 				LevelRequestError::SerializeError => Err(LevelReviewError::RequestError),
 				LevelRequestError::RequestXApiError => Err(LevelReviewError::RequestXApiError),
-				LevelRequestError::LevelRequestExists => {
+				_ => {
 					unreachable!()
 				}
 			}

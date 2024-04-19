@@ -1,4 +1,4 @@
-use log::error;
+use log::{error, info};
 use reqwest::{
 	header::{HeaderMap, HeaderValue},
 	Client, StatusCode
@@ -11,7 +11,6 @@ use crate::{
 		requestx_api_config::{RequestxApiConfig, REQUESTX_API_CONFIG}
 	},
 	model::{
-		error::level_request_error::LevelRequestError,
 		level_request::{
 			GetLevelRequest, GetLevelReview, LevelRequest, UpdateLevelRequestMessageId,
 			UpdateLevelRequestThreadId
@@ -19,8 +18,13 @@ use crate::{
 		level_review::LevelReview,
 		moderator::Moderator,
 		requestx_api::{
-			level_request_data::LevelRequestData, level_review_data::LevelReviewData,
-			level_review_error::LevelReviewError, moderator_data::ModeratorError,
+			error::{
+				level_request_error::{LevelRequestError, UserOnCooldownError},
+				level_review_error::LevelReviewError
+			},
+			level_request_data::LevelRequestData,
+			level_review_data::LevelReviewData,
+			moderator_data::ModeratorError,
 			reviewer_data::ReviewerError
 		},
 		reviewer::{AddReviewerRequest, RemoveReviewerRequest}
@@ -66,18 +70,16 @@ impl RequestXApiClient<'_> {
 
 		match response {
 			Ok(response) => {
-				if response.status().eq(&StatusCode::NOT_FOUND) {
+				let status_code = response.status();
+				let response_body = response.text().await.unwrap();
+
+				if status_code.eq(&StatusCode::NOT_FOUND) {
 					Ok(None)
-				} else if response.status().is_client_error() {
-					Err(RequestXApiClient::handle_level_request_client_error(
-						response.status()
-					))
-				} else if response.status().is_server_error() {
+				} else if status_code.is_server_error() || status_code.is_client_error() {
 					Err(LevelRequestError::RequestXApiError)
 				} else {
-					let response_string = response.text().await.unwrap();
 					let level_data: LevelRequestData =
-						serde_json::from_str(&response_string).unwrap();
+						serde_json::from_str(&response_body).unwrap();
 					Ok(Some(level_data))
 				}
 			}
@@ -151,16 +153,17 @@ impl RequestXApiClient<'_> {
 
 				match response {
 					Ok(response) => {
-						if response.status().is_client_error() {
+						let status_code = response.status();
+						let response_body = response.text().await.unwrap();
+
+						if status_code.is_client_error() || status_code.is_server_error() {
 							Err(RequestXApiClient::handle_level_request_client_error(
-								response.status()
+								status_code,
+								response_body
 							))
-						} else if response.status().is_server_error() {
-							Err(LevelRequestError::RequestXApiError)
 						} else {
-							let response_string = response.text().await.unwrap();
 							let level_data: LevelRequestData =
-								serde_json::from_str(&response_string).unwrap();
+								serde_json::from_str(&response_body).unwrap();
 							Ok(level_data)
 						}
 					}
@@ -373,12 +376,14 @@ impl RequestXApiClient<'_> {
 
 				match response {
 					Ok(response) => {
-						if response.status().is_client_error() {
+						let status_code = response.status();
+						let response_body = response.text().await.unwrap();
+
+						if status_code.is_client_error() || status_code.is_server_error() {
 							Err(RequestXApiClient::handle_level_request_client_error(
-								response.status()
+								status_code,
+								response_body
 							))
-						} else if response.status().is_server_error() {
-							Err(LevelRequestError::RequestXApiError)
 						} else {
 							Ok(())
 						}
@@ -418,12 +423,14 @@ impl RequestXApiClient<'_> {
 
 				match response {
 					Ok(response) => {
-						if response.status().is_client_error() {
+						let status_code = response.status();
+						let response_body = response.text().await.unwrap();
+
+						if status_code.is_client_error() || status_code.is_server_error() {
 							Err(RequestXApiClient::handle_level_request_client_error(
-								response.status()
+								status_code,
+								response_body
 							))
-						} else if response.status().is_server_error() {
-							Err(LevelRequestError::RequestXApiError)
 						} else {
 							Ok(())
 						}
@@ -462,11 +469,18 @@ impl RequestXApiClient<'_> {
 		}
 	}
 
-	fn handle_level_request_client_error(response_status: StatusCode) -> LevelRequestError {
-		if response_status.eq(&StatusCode::CONFLICT) {
-			LevelRequestError::LevelRequestExists
-		} else {
-			LevelRequestError::RequestXApiError
+	fn handle_level_request_client_error(
+		response_status: StatusCode,
+		response_body: String
+	) -> LevelRequestError {
+		info!("{}", &response_body);
+		match response_status {
+			StatusCode::CONFLICT => LevelRequestError::LevelRequestExists,
+			StatusCode::TOO_MANY_REQUESTS => LevelRequestError::UserOnCooldown(
+				serde_json::from_str::<UserOnCooldownError>(&*response_body).unwrap()
+			),
+			StatusCode::SERVICE_UNAVAILABLE => LevelRequestError::RequestsDisabled,
+			_ => LevelRequestError::RequestXApiError
 		}
 	}
 
@@ -507,7 +521,8 @@ mod tests {
 			level_id: 97624039,
 			request_score: RequestRating::One,
 			youtube_video_link: "Some".to_string(),
-			has_requested_feedback: false
+			has_requested_feedback: false,
+			notify: false
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)
@@ -532,7 +547,8 @@ mod tests {
 			level_id: 97624039,
 			request_score: RequestRating::One,
 			youtube_video_link: "SOME".to_string(),
-			has_requested_feedback: false
+			has_requested_feedback: false,
+			notify: false
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)

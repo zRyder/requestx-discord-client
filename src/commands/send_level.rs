@@ -88,44 +88,42 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 	match service.send_level(&ctx, &command, send_level_request).await {
 		Ok(level_request_data) => {
 			let mut send_level_message = MessageBuilder::new();
-			send_level_message.push(format!(
-				"\"{}\" ({}) ",
-				level_request_data.level_name, level_request_data.level_id
-			));
-			if level_request_data.level_length == LevelLength::Platformer {
-				if send_level_request.suggested_score == SuggestedScore::NoRate {
-					send_level_message.push_bold("has not ");
-					send_level_message.push("been sent...");
-				} else {
-					send_level_message.push_bold("has ");
-					send_level_message.push("been sent for ");
-					send_level_message.push_bold(format!(
-						"{}, {} Moons!",
-						serde_json::to_string(&suggested_rating)
-							.unwrap()
-							.replace("\"", ""),
-						serde_json::to_string(&suggested_score)
-							.unwrap()
-							.replace("\"", "")
-					));
-				}
+
+			if let Some(ref level_name) = level_request_data.level_name {
+				send_level_message.push(format!(
+					"\"{}\" ({}) ",
+					level_name, level_request_data.level_id
+				));
 			} else {
-				if send_level_request.suggested_score == SuggestedScore::NoRate {
-					send_level_message.push_bold("has not ");
-					send_level_message.push("been sent...");
-				} else {
-					send_level_message.push_bold("has ");
-					send_level_message.push("been sent for ");
-					send_level_message.push_bold(format!(
-						"{}, {} Stars!",
-						serde_json::to_string(&suggested_rating)
-							.unwrap()
-							.replace("\"", ""),
-						serde_json::to_string(&suggested_score)
-							.unwrap()
-							.replace("\"", "")
-					));
-				}
+				send_level_message.push(format!(
+					"{} ",
+					level_request_data.level_id
+				));
+			}
+			if send_level_request.suggested_score == SuggestedScore::NoRate {
+				send_level_message.push_bold("has not ");
+				send_level_message.push("been sent...");
+			} else {
+				send_level_message.push_bold("has ");
+				send_level_message.push("been sent for ");
+				send_level_message.push_bold(format!(
+					"{}, {} {}",
+					serde_json::to_string(&suggested_rating)
+						.unwrap()
+						.replace("\"", ""),
+					serde_json::to_string(&suggested_score)
+						.unwrap()
+						.replace("\"", ""),
+					if let Some(level_length) = level_request_data.level_length {
+						if level_length == LevelLength::Platformer {
+							"Moons!"
+						} else {
+							"Stars!"
+						}
+					} else {
+						"Stars/Moons!"
+					}
+				));
 			}
 
 			if level_request_data.notify {
@@ -162,24 +160,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 			}
 		}
 		Err(send_level_error) => {
-			match send_level_error {
-				ModeratorError::LevelRequestDoesNotExist => {
-					content = "Level request does not exist.".to_string();
-					invoke_ephermal(&content, &ctx, &command).await;
-				}
-				ModeratorError::RequestXApiError => {
-					content = "There was an error making the request".to_string();
-					invoke_ephermal(&content, &ctx, &command).await;
-				}
-				ModeratorError::SerializeError => {
-					content = "Unable to serialize request".to_string();
-					invoke_ephermal(&content, &ctx, &command).await;
-				}
-				ModeratorError::RequestError => {
-					content = "There was an error making the request".to_string();
-					invoke_ephermal(&content, &ctx, &command).await;
-				}
-			}
+			invoke_ephermal(&send_level_error.to_string(), &ctx, &command).await;
 
 			{
 				let mut log_message = MessageBuilder::new();

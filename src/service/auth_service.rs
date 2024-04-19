@@ -14,7 +14,7 @@ use crate::{
 		auth_config::AUTH_CONFIG, client_config::CLIENT_CONFIG, constants::CONTENT_LENGTH,
 		requestx_api_config::REQUESTX_API_CONFIG
 	},
-	model::error::auth_error::AuthError
+	model::requestx_api::error::auth_error::AuthError
 };
 
 #[derive(Debug, Serialize, Deserialize)]
