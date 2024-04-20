@@ -16,7 +16,7 @@ use crate::{
 	util::discord::{invoke_ephermal, log_to_discord}
 };
 
-pub fn register() -> CreateCommand {
+pub fn register_request_level() -> CreateCommand {
 	CreateCommand::new("request-level")
 		.description("Request a level to Ryder")
 		.add_option(
@@ -122,12 +122,10 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			invoke_ephermal(&content, &ctx, &command).await;
 
 			let mut request_message = MessageBuilder::new();
-			if let (Some(level_name), Some(level_creator_name)) = (&level_data.level_name, &level_data.level_author) {
-				request_message
-					.push_line(format!(
-						"\"{}\" by {}",
-						level_name, level_creator_name
-					));
+			if let (Some(level_name), Some(level_creator_name)) =
+				(&level_data.level_name, &level_data.level_author)
+			{
+				request_message.push_line(format!("\"{}\" by {}", level_name, level_creator_name));
 			}
 			request_message
 				.push_line(format!("{}", &level_data.level_id))

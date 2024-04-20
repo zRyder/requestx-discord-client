@@ -6,7 +6,7 @@ use serenity::{
 };
 
 use crate::{
-	commands::{request_level, review, reviewer, send_level},
+	commands::{request_level, request_manager, review, reviewer, send_level},
 	config::client_config::CLIENT_CONFIG
 };
 
@@ -23,11 +23,12 @@ impl EventHandler for Handler {
 			.set_commands(
 				&ctx.http,
 				vec![
-					request_level::register(),
+					request_level::register_request_level(),
 					review::register_review(),
 					reviewer::register_add_reviewer(),
 					reviewer::register_remove_reviewer(),
 					send_level::register_send_level(),
+					request_manager::register_request_manager(),
 				]
 			)
 			.await
@@ -44,6 +45,7 @@ impl EventHandler for Handler {
 				"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command).await,
 				"remove-reviewer" => reviewer::run_remove_reviewer(&ctx, &command).await,
 				"send-level" => send_level::run_send_level(&ctx, &command).await,
+				"request-manager" => request_manager::run_request_manager(&ctx, &command).await,
 				_ => println!("Unreachable")
 			};
 		}

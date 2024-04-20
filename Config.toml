@@ -18,6 +18,7 @@ send_level = "/api/v1/internal/send_level"
 update_request_message_id = "/api/v1/internal/request_level"
 update_review_message_id = "/api/v1/internal/review_level"
 update_request_thread_id = "/api/v1/internal/request_level/thread"
+update_request_manager = "/api/v1/internal/request_config"
 
 [requestx_api_config.headers]
 requestx_discord_app_id = "X-REQUESTX-DISCORD-APP-ID"

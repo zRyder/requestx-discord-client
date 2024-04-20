@@ -4,7 +4,6 @@ use std::{
 };
 
 use chrono::{DateTime, Duration, Utc};
-use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -38,40 +37,43 @@ impl Display for LevelRequestError {
 			}
 			LevelRequestError::UserOnCooldown(cooldown_error_data) => {
 				let duration = (cooldown_error_data.last_request_time
-					+ Duration::minutes(cooldown_error_data.request_cooldown as i64)) - Utc::now();
-				write!(f, "You are still on cooldown you, you can request again in {}.",
-					   {
-						   let hours = duration.num_hours();
-						   let minutes = duration.num_minutes() - (hours * 60);
-						   let seconds = duration.num_seconds() - (hours * 3600 + minutes * 60);
+					+ Duration::minutes(cooldown_error_data.request_cooldown as i64))
+					- Utc::now();
+				write!(
+					f,
+					"You are still on cooldown you, you can request again in **{}**.",
+					{
+						let hours = duration.num_hours();
+						let minutes = duration.num_minutes() - (hours * 60);
+						let seconds = duration.num_seconds() - (hours * 3600 + minutes * 60);
 
-						   // Display the duration
-						   let mut units = Vec::new();
-						   if hours > 0 {
-							   units.push(format!("{} hours", hours));
-						   }
-						   if minutes > 0 {
-							   units.push(format!("{} minutes", minutes));
-						   }
-						   if seconds > 0 {
-							   units.push(format!("{} seconds", seconds));
-						   }
+						// Display the duration
+						let mut units = Vec::new();
+						if hours > 0 {
+							units.push(format!("{} hours", hours));
+						}
+						if minutes > 0 {
+							units.push(format!("{} minutes", minutes));
+						}
+						if seconds > 0 {
+							units.push(format!("{} seconds", seconds));
+						}
 
-						   let duration_str: String;
+						let duration_str: String;
 
-						   if units.is_empty() {
-							   duration_str = "0 seconds".to_string()
-						   } else {
-							   duration_str = if units.len() > 1 {
-								   let last_unit = units.pop().unwrap();
-								   let rest = units.join(", ");
-								   format!("{} and {}", rest, last_unit)
-							   } else {
-								   units.join(", ")
-							   };
-						   }
-						   duration_str
-					   }
+						if units.is_empty() {
+							duration_str = "0 seconds".to_string()
+						} else {
+							duration_str = if units.len() > 1 {
+								let last_unit = units.pop().unwrap();
+								let rest = units.join(", ");
+								format!("{} and {}", rest, last_unit)
+							} else {
+								units.join(", ")
+							};
+						}
+						duration_str
+					}
 				)
 			}
 			LevelRequestError::RequestsDisabled => {

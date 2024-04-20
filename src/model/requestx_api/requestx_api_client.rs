@@ -17,6 +17,7 @@ use crate::{
 		},
 		level_review::LevelReview,
 		moderator::Moderator,
+		request_manager::UpdateRequestManager,
 		requestx_api::{
 			error::{
 				level_request_error::{LevelRequestError, UserOnCooldownError},
@@ -354,6 +355,56 @@ impl RequestXApiClient<'_> {
 		}
 	}
 
+	pub async fn make_update_request_manager_request(
+		&self,
+		update_request_manager_request: &UpdateRequestManager
+	) -> Result<(), LevelRequestError> {
+		match serde_json::to_string(&update_request_manager_request) {
+			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
+				let response_result = self
+					.web_client
+					.patch(format!(
+						"{}{}",
+						self.requestx_api_config.base_url,
+						self.requestx_api_config.paths.update_request_manager
+					))
+					.body(serialized_request)
+					.headers(headers)
+					.send()
+					.await;
+
+				match response_result {
+					Ok(response) => {
+						let status_code = response.status();
+						let response_body = response.text().await.unwrap();
+
+						if status_code.is_client_error() || status_code.is_server_error() {
+							Err(RequestXApiClient::handle_level_request_client_error(
+								status_code,
+								response_body
+							))
+						} else {
+							Ok(())
+						}
+					}
+					Err(err) => {
+						error!("{}", err);
+						Err(LevelRequestError::RequestError)
+					}
+				}
+			}
+			Err(err) => {
+				error!(
+					"Failed to serialize update request manager request: {}",
+					err
+				);
+				Err(LevelRequestError::SerializeError)
+			}
+		}
+	}
+
 	pub async fn update_request_message_id(
 		&self,
 		update_level_request: UpdateLevelRequestMessageId
@@ -362,7 +413,7 @@ impl RequestXApiClient<'_> {
 			Ok(serialized_request) => {
 				let mut headers = HeaderMap::new();
 				Self::get_auth_header(&mut headers).await;
-				let response = self
+				let response_result = self
 					.web_client
 					.patch(format!(
 						"{}{}",
@@ -374,7 +425,7 @@ impl RequestXApiClient<'_> {
 					.send()
 					.await;
 
-				match response {
+				match response_result {
 					Ok(response) => {
 						let status_code = response.status();
 						let response_body = response.text().await.unwrap();
