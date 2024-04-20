@@ -9,8 +9,7 @@ use serenity::all::{
 use crate::{
 	model::{
 		moderator::{Moderator, SuggestedRating, SuggestedScore},
-		request_score::LevelLength,
-		requestx_api::moderator_data::ModeratorError
+		request_score::LevelLength
 	},
 	service::moderator_service::ModeratorService,
 	util::discord::{invoke_ephermal, log_to_discord}
@@ -90,15 +89,9 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 			let mut send_level_message = MessageBuilder::new();
 
 			if let Some(ref level_name) = level_request_data.level_name {
-				send_level_message.push(format!(
-					"\"{}\" ({}) ",
-					level_name, level_request_data.level_id
-				));
+				send_level_message.push(format!("\"{}\" ", level_name));
 			} else {
-				send_level_message.push(format!(
-					"{} ",
-					level_request_data.level_id
-				));
+				send_level_message.push("The level ");
 			}
 			if send_level_request.suggested_score == SuggestedScore::NoRate {
 				send_level_message.push_bold("has not ");

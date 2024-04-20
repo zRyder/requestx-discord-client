@@ -29,15 +29,11 @@ pub struct LevelRequest {
 #[derive(Serialize)]
 pub struct UpdateLevelRequestMessageId {
 	pub level_id: u64,
-	// #[serde(rename = "discord_id")]
-	// pub discord_user_id: u64,
 	pub discord_message_id: u64
 }
 
 #[derive(Serialize)]
 pub struct UpdateLevelRequestThreadId {
 	pub level_id: u64,
-	// #[serde(rename = "discord_id")]
-	// pub discord_user_id: u64,
 	pub discord_thread_id: u64
 }
