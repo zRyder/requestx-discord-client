@@ -15,18 +15,20 @@ pub struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
 	async fn message(&self, ctx: Context, message: Message) {
-		if !message
-			.author
-			.has_role(
-				&ctx.http,
-				CLIENT_CONFIG.discord_guild_id,
-				CLIENT_CONFIG.discord_maintenance_role_id
-			)
-			.await
-			.unwrap()
-		{
-			if let Err(message_delete_error) = message.delete(&ctx.http).await {
-				error!("Unable to delete message: {}", message_delete_error);
+		if message.channel_id.eq(&CLIENT_CONFIG.discord_public_channel_id) {
+			if !message
+				.author
+				.has_role(
+					&ctx.http,
+					CLIENT_CONFIG.discord_guild_id,
+					CLIENT_CONFIG.discord_maintenance_role_id
+				)
+				.await
+				.unwrap()
+			{
+				if let Err(message_delete_error) = message.delete(&ctx.http).await {
+					error!("Unable to delete message: {}", message_delete_error);
+				}
 			}
 		}
 	}
