@@ -8,6 +8,7 @@ use serenity::{
 };
 
 use crate::{
+	config::client_config::CLIENT_CONFIG,
 	model::{
 		level_request::{LevelRequest, UpdateLevelRequestMessageId},
 		request_score::RequestRating
@@ -135,7 +136,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			}
 			request_message.push_line(format!("{}", &level_data.youtube_video_link));
 
-			match ChannelId::new(1193493680594616411)
+			match ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 				.say(&ctx.http, &request_message.build())
 				.await
 			{

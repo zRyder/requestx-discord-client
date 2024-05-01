@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use log::{debug, info};
+use log::{debug, error, info};
 use serenity::{
-	all::{GuildId, Interaction, Ready},
+	all::{GuildId, Interaction, Message, Ready},
 	prelude::{Context, EventHandler}
 };
 
@@ -14,6 +14,23 @@ pub struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
+	async fn message(&self, ctx: Context, message: Message) {
+		if !message
+			.author
+			.has_role(
+				&ctx.http,
+				CLIENT_CONFIG.discord_guild_id,
+				CLIENT_CONFIG.discord_maintenance_role_id
+			)
+			.await
+			.unwrap()
+		{
+			if let Err(message_delete_error) = message.delete(&ctx.http).await {
+				error!("Unable to delete message: {}", message_delete_error);
+			}
+		}
+	}
+
 	async fn ready(&self, ctx: Context, ready: Ready) {
 		info!("{} is connected!", ready.user.name);
 

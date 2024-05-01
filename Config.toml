@@ -2,9 +2,11 @@
 discord_bot_token = "{{REQUESTX_DISCORD_BOT_TOKEN}}"
 discord_app_id = "{{REQUESTX_DISCORD_APP_ID}}"
 discord_guild_id = "{{REQUESTX_DISCORD_GUILD_ID}}"
-discord_reviewer_role_id = "{{REQUESTX_DISCORD_ROLE_ID}}"
+discord_reviewer_role_id = "{{REQUESTX_DISCORD_REVIEWER_ROLE_ID}}"
+discord_maintenance_role_id = "{{REQUESTX_DISCORD_MAINTENANCE_ROLE_ID}}"
 discord_bot_admin_id = "{{REQUESTX_DISCORD_BOT_ADMIN_ID}}"
 discord_log_channel_id = "{{REQUESTX_DISCORD_LOG_CHANNEL_ID}}"
+discord_requests_channel_id = "{{REQUESTX_DISCORD_REQUESTS_CHANNEL_ID}}"
 
 [requestx_api_config]
 base_url = "{{REQUESTX_BASE_URL}}"

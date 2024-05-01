@@ -19,7 +19,7 @@ pub async fn create_thread(
 	level: &LevelRequestData
 ) -> Result<u64, Error> {
 	let create_thread_result = if let Some(level_name) = &level.level_name {
-		ChannelId::new(1193493680594616411)
+		ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 			.create_thread_from_message(
 				&ctx.http,
 				message_id,
@@ -32,7 +32,7 @@ pub async fn create_thread(
 			)
 			.await
 	} else {
-		ChannelId::new(1193493680594616411)
+		ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 			.create_thread_from_message(
 				&ctx.http,
 				message_id,
