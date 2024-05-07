@@ -4,6 +4,7 @@ use serenity::{
 	all::{GuildId, Interaction, Message, Ready},
 	prelude::{Context, EventHandler}
 };
+use serenity::all::MessageType;
 
 use crate::{
 	commands::{request_level, request_manager, review, reviewer, send_level},
@@ -15,7 +16,7 @@ pub struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
 	async fn message(&self, ctx: Context, message: Message) {
-		if message.channel_id.eq(&CLIENT_CONFIG.discord_public_channel_id) {
+		if message.kind.eq(&MessageType::ThreadCreated) || message.channel_id.eq(&CLIENT_CONFIG.discord_public_channel_id) {
 			if !message
 				.author
 				.has_role(
