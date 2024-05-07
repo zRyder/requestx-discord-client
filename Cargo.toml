@@ -1,6 +1,6 @@
 [package]
 name = "requestx-discord-client"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 serenity = { version = "0.12.0-rc2", features = ["builder"] }
 tokio = { version = "1.35.1", features = ["rt-multi-thread"] }
-dotenv = "0.15.0"
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.111"
 lazy_static = "1.4.0"
@@ -18,7 +17,6 @@ url = "2.5.0"
 async-trait = "0.1.77"
 jsonwebtoken = "9.2.0"
 log4rs = {version = "1.2.0", features = ["json_encoder", "json_format", "serde_json"]}
-envfile = "0.2.1"
 config = "0.13.4"
 handlebars = "5.0.0"
 log = "0.4.20"
