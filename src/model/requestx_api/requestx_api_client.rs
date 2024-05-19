@@ -12,8 +12,8 @@ use crate::{
 	},
 	model::{
 		level_request::{
-			GetLevelRequest, GetLevelReview, LevelRequest, UpdateLevelRequestMessageId,
-			UpdateLevelRequestThreadId
+			GetLevelRequest, GetLevelReview, LevelRequest, UpdateLevelRequest,
+			UpdateLevelRequestMessageId, UpdateLevelRequestThreadId
 		},
 		level_review::LevelReview,
 		moderator::Moderator,
@@ -32,7 +32,6 @@ use crate::{
 	},
 	service::auth_service::JWT
 };
-use crate::model::level_request::UpdateLevelRequest;
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,

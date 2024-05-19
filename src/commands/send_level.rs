@@ -7,6 +7,7 @@ use serenity::all::{
 };
 
 use crate::{
+	config::client_config::CLIENT_CONFIG,
 	model::{
 		moderator::{Moderator, SuggestedRating, SuggestedScore},
 		request_score::LevelLength
@@ -14,7 +15,6 @@ use crate::{
 	service::moderator_service::ModeratorService,
 	util::discord::{invoke_ephermal, log_to_discord}
 };
-use crate::config::client_config::CLIENT_CONFIG;
 
 pub fn register_send_level() -> CreateCommand {
 	CreateCommand::new("send-level")
@@ -64,7 +64,7 @@ pub fn register_send_level() -> CreateCommand {
 pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 	if !command.user.id.eq(&CLIENT_CONFIG.discord_bot_admin_id) {
 		invoke_ephermal("Forbidden", &ctx, &command).await;
-		return
+		return;
 	}
 	let level_id = command
 		.data
