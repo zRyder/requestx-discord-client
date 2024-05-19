@@ -28,6 +28,8 @@ pub struct LevelRequest {
 
 #[derive(Serialize, Debug)]
 pub struct UpdateLevelRequest {
+	#[serde(rename = "discord_id")]
+	pub discord_user_id: u64,
 	pub level_id: u64,
 	#[serde(rename = "request_rating")]
 	pub request_score: Option<RequestRating>,

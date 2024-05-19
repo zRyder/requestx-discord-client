@@ -6,7 +6,7 @@ use serenity::{
 	builder::{CreateCommand, CreateCommandOption},
 	prelude::Context
 };
-use serenity::all::EditMessage;
+use serenity::all::{EditMessage};
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
@@ -237,21 +237,8 @@ pub fn register_edit_level_request() -> CreateCommand {
 }
 
 pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction) {
-	if !command
-		.user
-		.has_role(
-			&ctx.http,
-			CLIENT_CONFIG.discord_guild_id,
-			CLIENT_CONFIG.discord_maintenance_role_id
-		)
-		.await
-		.unwrap()
-	{
-		invoke_ephermal("Forbidden", &ctx, &command).await;
-		return
-	}
-
 	let update_level_request = UpdateLevelRequest {
+		discord_user_id: command.user.id.get(),
 		level_id: command.data.options.get(0).unwrap()
 			.value
 			.as_i64()
@@ -316,6 +303,16 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 					"Unable to edit level request message: {}",
 					edit_message_error
 				);
+				return
+			}
+
+			{
+				let mut log_message = MessageBuilder::new();
+				log_message.push_bold(format!("{} ", command.user.name));
+				log_message
+					.push_line(format!("({}) has edited a level request", command.user.id));
+				log_message.push_codeblock(format!("{:?}", &level_request_data), Some("rust"));
+				log_to_discord(log_message.build(), ctx.clone()).await
 			}
 
 			let content = "Level request has been edited successfully!".to_string();
@@ -323,6 +320,17 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 		}
 		Err(error) => {
 			invoke_ephermal(&error.to_string(), &ctx, &command).await;
+
+			{
+				let mut log_message = MessageBuilder::new();
+				log_message.push_bold(format!("{} ", command.user.name));
+				log_message.push_line(format!(
+					"({}) caused an error when editing a level request",
+					command.user.id
+				));
+				log_message.push_codeblock(format!("{:?}", error), Some("rust"));
+				log_to_discord(log_message.build(), ctx.clone()).await
+			}
 		}
 	}
 }
@@ -368,6 +376,26 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 					"Unable to delete level request message: {}",
 					delete_message_error
 				);
+				return
+			}
+			if let Err(delete_message_error) = ChannelId::new(level_request_data.discord_thread_id.unwrap())
+				.delete(
+					&ctx.http,
+				).await {
+				error!(
+					"Unable to delete level request thread: {}",
+					delete_message_error
+				);
+				return
+			}
+
+			{
+				let mut log_message = MessageBuilder::new();
+				log_message.push_bold(format!("{} ", command.user.name));
+				log_message
+					.push_line(format!("({}) has deleted a level request", command.user.id));
+				log_message.push_codeblock(format!("{:?}", &level_request_data), Some("rust"));
+				log_to_discord(log_message.build(), ctx.clone()).await
 			}
 
 			let content = "Level request has been deleted successfully!".to_string();
@@ -375,6 +403,17 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 		}
 		Err(error) => {
 			invoke_ephermal(&error.to_string(), &ctx, &command).await;
+
+			{
+				let mut log_message = MessageBuilder::new();
+				log_message.push_bold(format!("{} ", command.user.name));
+				log_message.push_line(format!(
+					"({}) cause an error when deleting a level request",
+					command.user.id
+				));
+				log_message.push_codeblock(format!("{:?}", error), Some("rust"));
+				log_to_discord(log_message.build(), ctx.clone()).await
+			}
 		}
 	}
 }
