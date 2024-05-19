@@ -1,4 +1,3 @@
-use log::info;
 use serenity::{
 	all::{CommandInteraction, CommandOptionType, Context},
 	builder::{CreateCommand, CreateCommandOption}
@@ -69,7 +68,6 @@ pub async fn run_request_manager(ctx: &Context, command: &CommandInteraction) {
 		}
 	};
 
-	info!("{:?}", update_request_manager_request);
 	let service = RequestManagerService::new();
 
 	match service

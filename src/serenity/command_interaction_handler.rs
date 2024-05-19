@@ -44,6 +44,8 @@ impl EventHandler for Handler {
 				&ctx.http,
 				vec![
 					request_level::register_request_level(),
+					request_level::register_edit_level_request(),
+					request_level::register_delete_level_request(),
 					review::register_review(),
 					reviewer::register_add_reviewer(),
 					reviewer::register_remove_reviewer(),
@@ -61,6 +63,8 @@ impl EventHandler for Handler {
 
 			match command.data.name.as_str() {
 				"request-level" => request_level::run_request_level(&ctx, &command).await,
+				"edit-level-request" => request_level::run_edit_level_request(&ctx, &command).await,
+				"delete-level-request" => request_level::run_delete_level_request(&ctx, &command).await,
 				"review" => review::post_level_review(&ctx, &command).await,
 				"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command).await,
 				"remove-reviewer" => reviewer::run_remove_reviewer(&ctx, &command).await,

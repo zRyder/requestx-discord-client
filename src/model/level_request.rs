@@ -26,6 +26,16 @@ pub struct LevelRequest {
 	pub notify: bool
 }
 
+#[derive(Serialize, Debug)]
+pub struct UpdateLevelRequest {
+	pub level_id: u64,
+	#[serde(rename = "request_rating")]
+	pub request_score: Option<RequestRating>,
+	pub youtube_video_link: Option<String>,
+	pub has_requested_feedback: Option<bool>,
+	pub notify: Option<bool>
+}
+
 #[derive(Serialize)]
 pub struct UpdateLevelRequestMessageId {
 	pub level_id: u64,

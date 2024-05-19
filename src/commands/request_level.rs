@@ -6,6 +6,7 @@ use serenity::{
 	builder::{CreateCommand, CreateCommandOption},
 	prelude::Context
 };
+use serenity::all::EditMessage;
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
@@ -16,6 +17,7 @@ use crate::{
 	service::level_request_service::LevelRequestService,
 	util::discord::{invoke_ephermal, log_to_discord}
 };
+use crate::model::level_request::{GetLevelRequest, UpdateLevelRequest};
 
 pub fn register_request_level() -> CreateCommand {
 	CreateCommand::new("request-level")
@@ -179,6 +181,200 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 				log_message.push_codeblock(format!("{:?}", error), Some("rust"));
 				log_to_discord(log_message.build(), ctx.clone()).await
 			}
+		}
+	}
+}
+
+pub fn register_edit_level_request() -> CreateCommand {
+	CreateCommand::new("edit-level-request")
+		.description("Edits an existing level request")
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::Integer,
+				"level-id",
+				"The level ID of the level request to edit."
+			)
+				.required(true)
+		)
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::String,
+				"request-rating",
+				"The amount of Stars/Moons requested."
+			)
+				.add_string_choice("Auto, 1 Star/Moon", "One")
+				.add_string_choice("Easy, 2 Stars/Moons", "Two")
+				.add_string_choice("Normal, 3 Stars/Moons", "Three")
+				.add_string_choice("Hard, 4 Stars/Moons", "Four")
+				.add_string_choice("Hard, 5 Stars/Moons", "Five")
+				.add_string_choice("Harder, 6 Stars/Moons", "Six")
+				.add_string_choice("Harder, 7 Stars/Moons", "Seven")
+				.add_string_choice("Insane, 8 Stars/Moons", "Eight")
+				.add_string_choice("Insane, 9 Stars/Moons", "Nine")
+				.add_string_choice("Demon, 10 Stars/Moons", "Ten")
+		)
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::String,
+				"video-link",
+				"A link to the video showcasing the requested level."
+			)
+		)
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::Boolean,
+				"request-feedback",
+				"Request for reviewers to potentially review your request."
+			)
+		)
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::Boolean,
+				"notify",
+				"Notify when a review has been made or if the level has been sent."
+			)
+		)
+}
+
+pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction) {
+	if !command
+		.user
+		.has_role(
+			&ctx.http,
+			CLIENT_CONFIG.discord_guild_id,
+			CLIENT_CONFIG.discord_maintenance_role_id
+		)
+		.await
+		.unwrap()
+	{
+		invoke_ephermal("Forbidden", &ctx, &command).await;
+		return
+	}
+
+	let update_level_request = UpdateLevelRequest {
+		level_id: command.data.options.get(0).unwrap()
+			.value
+			.as_i64()
+			.unwrap()
+			.unsigned_abs(),
+		request_score: if let Some(request_rating_command_option) = command
+			.data
+			.options
+			.iter()
+			.find(|command_option| command_option.name.eq("request-rating")) {
+			Some(RequestRating::from_str(request_rating_command_option.value.as_str().unwrap()).unwrap())
+		} else { None },
+		youtube_video_link: if let Some(video_link_command_option) = command
+			.data
+			.options
+			.iter()
+			.find(|command_option| command_option.name.eq("video-link")) {
+			Some(video_link_command_option.value.as_str().unwrap().to_string())
+		} else { None },
+		has_requested_feedback: if let Some(has_requested_feedback_command_option) = command
+			.data
+			.options
+			.iter()
+			.find(|command_option| command_option.name.eq("request-feedback")) {
+			Some(has_requested_feedback_command_option.value.as_bool().unwrap())
+		} else { None },
+		notify: if let Some(notify_command_option) = command
+			.data
+			.options
+			.iter()
+			.find(|command_option| command_option.name.eq("notify")) {
+			Some(notify_command_option.value.as_bool().unwrap())
+		} else { None },
+	};
+
+	let service = LevelRequestService::new();
+
+	match service.update_level_request(update_level_request).await
+	{
+		Ok(level_request_data) => {
+			let mut request_message = MessageBuilder::new();
+			if let (Some(level_name), Some(level_creator_name)) =
+				(&level_request_data.level_name, &level_request_data.level_author)
+			{
+				request_message.push_line(format!("\"{}\" by {}", level_name, level_creator_name));
+			}
+			request_message
+				.push_line(format!("{}", &level_request_data.level_id))
+				.push_line(format!("Requested {}", &level_request_data.request_score));
+			if level_request_data.has_requested_feedback {
+				request_message.push_line("Feedback has been requested!");
+			}
+			request_message.push_line(format!("{}", &level_request_data.youtube_video_link));
+
+			if let Err(edit_message_error) = ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
+				.edit_message(
+					&ctx.http,
+					level_request_data.discord_message_id.unwrap(),
+					EditMessage::new().content(&request_message.build())
+				).await {
+				error!(
+					"Unable to edit level request message: {}",
+					edit_message_error
+				);
+			}
+
+			let content = "Level request has been edited successfully!".to_string();
+			invoke_ephermal(&content, &ctx, &command).await;
+		}
+		Err(error) => {
+			invoke_ephermal(&error.to_string(), &ctx, &command).await;
+		}
+	}
+}
+
+pub fn register_delete_level_request() -> CreateCommand {
+	CreateCommand::new("delete-level-request")
+		.description("Deletes an existing level request")
+		.add_option(
+			CreateCommandOption::new(
+				CommandOptionType::Integer,
+				"level-id",
+				"The level ID of the level request to delete."
+			)
+				.required(true)
+		)
+}
+
+pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteraction) {
+	if !command.user.id.eq(&CLIENT_CONFIG.discord_bot_admin_id) {
+		invoke_ephermal("Forbidden", &ctx, &command).await;
+		return
+	}
+
+	let delete_level_request = GetLevelRequest {
+		level_id: command.data.options.get(0).unwrap()
+		.value
+		.as_i64()
+		.unwrap()
+		.unsigned_abs()
+	};
+
+	let service = LevelRequestService::new();
+
+	match service.delete_level_request(delete_level_request).await
+	{
+		Ok(level_request_data) => {
+			if let Err(delete_message_error) = ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
+				.delete_message(
+					&ctx.http,
+					level_request_data.discord_message_id.unwrap()
+				).await {
+				error!(
+					"Unable to delete level request message: {}",
+					delete_message_error
+				);
+			}
+
+			let content = "Level request has been deleted successfully!".to_string();
+			invoke_ephermal(&content, &ctx, &command).await;
+		}
+		Err(error) => {
+			invoke_ephermal(&error.to_string(), &ctx, &command).await;
 		}
 	}
 }

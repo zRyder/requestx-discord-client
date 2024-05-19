@@ -32,6 +32,7 @@ use crate::{
 	},
 	service::auth_service::JWT
 };
+use crate::model::level_request::UpdateLevelRequest;
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,
@@ -177,6 +178,96 @@ impl RequestXApiClient<'_> {
 			Err(err) => {
 				error!("Error serializing make level request: {}", err);
 				Err(LevelRequestError::SerializeError)
+			}
+		}
+	}
+
+	pub async fn make_requestx_api_update_level_request(
+		&self,
+		level_request: UpdateLevelRequest
+	) -> Result<LevelRequestData, LevelRequestError> {
+		match serde_json::to_string(&level_request) {
+			Ok(serialized_request) => {
+				let mut headers = HeaderMap::new();
+				Self::get_auth_header(&mut headers).await;
+				let response = self
+					.web_client
+					.patch(format!(
+						"{}{}",
+						self.requestx_api_config.base_url,
+						self.requestx_api_config.paths.request_level
+					))
+					.body(serialized_request)
+					.headers(headers)
+					.send()
+					.await;
+
+				match response {
+					Ok(response) => {
+						let status_code = response.status();
+						let response_body = response.text().await.unwrap();
+
+						if status_code.is_client_error() || status_code.is_server_error() {
+							Err(RequestXApiClient::handle_level_request_client_error(
+								status_code,
+								response_body
+							))
+						} else {
+							let level_data: LevelRequestData =
+								serde_json::from_str(&response_body).unwrap();
+							Ok(level_data)
+						}
+					}
+					Err(error) => {
+						error!("{}", error);
+						Err(LevelRequestError::RequestError)
+					}
+				}
+			}
+			Err(err) => {
+				error!("Error serializing make level request: {}", err);
+				Err(LevelRequestError::SerializeError)
+			}
+		}
+	}
+
+	pub async fn make_requestx_api_delete_level_request(
+		&self,
+		level_request: GetLevelRequest
+	) -> Result<LevelRequestData, LevelRequestError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
+		let response = self
+			.web_client
+			.delete(format!(
+				"{}{}/{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.request_level,
+				level_request.level_id
+			))
+			.headers(headers)
+			.send()
+			.await;
+
+		match response {
+			Ok(response) => {
+				let status_code = response.status();
+				let response_body = response.text().await.unwrap();
+
+				if status_code.is_client_error() || status_code.is_server_error() {
+					Err(RequestXApiClient::handle_level_request_client_error(
+						status_code,
+						response_body
+					))
+				} else {
+					let level_data: LevelRequestData =
+						serde_json::from_str(&response_body).unwrap();
+					Ok(level_data)
+				}
+			}
+			Err(error) => {
+				error!("{}", error);
+				Err(LevelRequestError::RequestError)
 			}
 		}
 	}
