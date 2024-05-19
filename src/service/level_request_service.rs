@@ -12,6 +12,8 @@ use crate::{
 		}
 	}
 };
+use crate::model::level_request::UpdateLevelRequest;
+
 pub struct LevelRequestService<'a> {
 	requestx_api_client: RequestXApiClient<'a>
 }
@@ -50,6 +52,38 @@ impl<'a> LevelRequestService<'a> {
 			.make_requestx_api_level_request(level_request)
 			.await
 		{
+			Ok(level_request_data) => Ok(level_request_data),
+			Err(error) => Err(error)
+		}
+	}
+
+	pub async fn update_level_request(
+		&self,
+		level_request: UpdateLevelRequest
+	) -> Result<LevelRequestData, LevelRequestError> {
+		if let Some(youtube_video_link) = &level_request.youtube_video_link {
+			if !Self::is_valid_youtube_link(youtube_video_link) {
+				warn!("Invalid link: {}", youtube_video_link);
+				return Err(LevelRequestError::SerializeError);
+			}
+		}
+		match self
+			.requestx_api_client
+			.make_requestx_api_update_level_request(level_request)
+			.await {
+			Ok(level_request_data) => Ok(level_request_data),
+			Err(error) => Err(error)
+		}
+	}
+
+	pub async fn delete_level_request(
+		&self,
+		level_request: GetLevelRequest
+	) -> Result<LevelRequestData, LevelRequestError> {
+		match self
+			.requestx_api_client
+			.make_requestx_api_delete_level_request(level_request)
+			.await {
 			Ok(level_request_data) => Ok(level_request_data),
 			Err(error) => Err(error)
 		}

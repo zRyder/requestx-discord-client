@@ -14,6 +14,7 @@ use crate::{
 	service::moderator_service::ModeratorService,
 	util::discord::{invoke_ephermal, log_to_discord}
 };
+use crate::config::client_config::CLIENT_CONFIG;
 
 pub fn register_send_level() -> CreateCommand {
 	CreateCommand::new("send-level")
@@ -61,6 +62,10 @@ pub fn register_send_level() -> CreateCommand {
 }
 
 pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
+	if !command.user.id.eq(&CLIENT_CONFIG.discord_bot_admin_id) {
+		invoke_ephermal("Forbidden", &ctx, &command).await;
+		return
+	}
 	let level_id = command
 		.data
 		.options
@@ -154,7 +159,6 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 		}
 		Err(send_level_error) => {
 			invoke_ephermal(&send_level_error.to_string(), &ctx, &command).await;
-
 			{
 				let mut log_message = MessageBuilder::new();
 				log_message.push_line("Unable to send level to RobTop".to_string());
