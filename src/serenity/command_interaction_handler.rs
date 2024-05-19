@@ -1,10 +1,9 @@
 use async_trait::async_trait;
 use log::{debug, error, info};
 use serenity::{
-	all::{GuildId, Interaction, Message, Ready},
+	all::{GuildId, Interaction, Message, MessageType, Ready},
 	prelude::{Context, EventHandler}
 };
-use serenity::all::MessageType;
 
 use crate::{
 	commands::{request_level, request_manager, review, reviewer, send_level},
@@ -16,7 +15,11 @@ pub struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
 	async fn message(&self, ctx: Context, message: Message) {
-		if message.kind.eq(&MessageType::ThreadCreated) || message.channel_id.eq(&CLIENT_CONFIG.discord_public_channel_id) {
+		if message.kind.eq(&MessageType::ThreadCreated)
+			|| message
+				.channel_id
+				.eq(&CLIENT_CONFIG.discord_public_channel_id)
+		{
 			if !message
 				.author
 				.has_role(
@@ -64,7 +67,9 @@ impl EventHandler for Handler {
 			match command.data.name.as_str() {
 				"request-level" => request_level::run_request_level(&ctx, &command).await,
 				"edit-level-request" => request_level::run_edit_level_request(&ctx, &command).await,
-				"delete-level-request" => request_level::run_delete_level_request(&ctx, &command).await,
+				"delete-level-request" => {
+					request_level::run_delete_level_request(&ctx, &command).await
+				}
 				"review" => review::post_level_review(&ctx, &command).await,
 				"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command).await,
 				"remove-reviewer" => reviewer::run_remove_reviewer(&ctx, &command).await,

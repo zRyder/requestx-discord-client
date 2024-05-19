@@ -4,7 +4,8 @@ use crate::{
 	config::constants::YOUTUBE_LINK_REGEX,
 	model::{
 		level_request::{
-			GetLevelRequest, LevelRequest, UpdateLevelRequestMessageId, UpdateLevelRequestThreadId
+			GetLevelRequest, LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId,
+			UpdateLevelRequestThreadId
 		},
 		requestx_api::{
 			error::level_request_error::LevelRequestError, level_request_data::LevelRequestData,
@@ -12,7 +13,6 @@ use crate::{
 		}
 	}
 };
-use crate::model::level_request::UpdateLevelRequest;
 
 pub struct LevelRequestService<'a> {
 	requestx_api_client: RequestXApiClient<'a>
@@ -70,7 +70,8 @@ impl<'a> LevelRequestService<'a> {
 		match self
 			.requestx_api_client
 			.make_requestx_api_update_level_request(level_request)
-			.await {
+			.await
+		{
 			Ok(level_request_data) => Ok(level_request_data),
 			Err(error) => Err(error)
 		}
@@ -83,7 +84,8 @@ impl<'a> LevelRequestService<'a> {
 		match self
 			.requestx_api_client
 			.make_requestx_api_delete_level_request(level_request)
-			.await {
+			.await
+		{
 			Ok(level_request_data) => Ok(level_request_data),
 			Err(error) => Err(error)
 		}

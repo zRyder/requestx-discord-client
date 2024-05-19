@@ -21,7 +21,10 @@ impl Display for LevelReviewError {
 				write!(f, "Unable to make request to server")
 			}
 			LevelReviewError::SerializeError => {
-				write!(f, "Unable to serialized level review, double check your YouTube link")
+				write!(
+					f,
+					"Unable to serialized level review, double check your YouTube link"
+				)
 			}
 			LevelReviewError::RequestXApiError => {
 				write!(f, "The server failed to upload the level review")
