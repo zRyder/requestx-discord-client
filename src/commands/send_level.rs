@@ -147,7 +147,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 							.push_codeblock(format!("{:?}", level_request_data), Some("rust"));
 						log_message
 							.push_codeblock(format!("{:?}", send_level_request), Some("rust"));
-						log_to_discord(log_message.build(), ctx.clone()).await
+						log_to_discord(ctx.clone(), log_message.build()).await
 					}
 				}
 				Err(error) => {
@@ -163,7 +163,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 				let mut log_message = MessageBuilder::new();
 				log_message.push_line("Unable to send level to RobTop".to_string());
 				log_message.push_codeblock(format!("{:?}", send_level_request), Some("rust"));
-				log_to_discord(log_message.build(), ctx.clone()).await
+				log_to_discord(ctx.clone(), log_message.build()).await
 			}
 		}
 	}

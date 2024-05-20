@@ -194,8 +194,10 @@ impl<'a> LevelReviewService<'a> {
 			}
 			Err(error) => match error {
 				LevelRequestError::RequestError => Err(LevelReviewError::RequestError),
-				LevelRequestError::SerializeError => Err(LevelReviewError::RequestError),
-				LevelRequestError::RequestXApiError => Err(LevelReviewError::RequestXApiError),
+				LevelRequestError::SerializeError(_field) => Err(LevelReviewError::RequestError),
+				LevelRequestError::RequestXApiError(_error_message) => {
+					Err(LevelReviewError::RequestXApiError)
+				}
 				_ => {
 					unreachable!()
 				}

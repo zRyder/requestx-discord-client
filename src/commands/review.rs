@@ -84,7 +84,7 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 						"({}) left a review on level request ID: {}",
 						command.user.id, level_id
 					));
-					log_to_discord(log_message.build(), ctx.clone()).await
+					log_to_discord(ctx.clone(), log_message.build()).await
 				}
 				invoke_ephermal(&message_string, &ctx, &command).await
 			}

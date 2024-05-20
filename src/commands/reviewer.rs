@@ -45,7 +45,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 						let mut log_message = MessageBuilder::new();
 						log_message.push_bold(format!("{} ", &user.name));
 						log_message.push_line(format!("({}) has been promoted Reviewer", &user.id));
-						log_to_discord(log_message.build(), ctx.clone()).await
+						log_to_discord(ctx.clone(), log_message.build()).await
 					}
 				}
 				Err(error) => {
@@ -58,7 +58,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 						log_message.push_bold(format!("{} ", &user.name));
 						log_message.push_line(format!("({}) to reviewer", &user.id));
 						log_message.push_codeblock(format!("{:?}", error), Some("rust"));
-						log_to_discord(log_message.build(), ctx.clone()).await
+						log_to_discord(ctx.clone(), log_message.build()).await
 					}
 				}
 			}
@@ -108,7 +108,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 						log_message.push_bold(format!("{} ", &user.name));
 						log_message
 							.push_line(format!("({}) has been demoted from Reviewer", &user.id));
-						log_to_discord(log_message.build(), ctx.clone()).await
+						log_to_discord(ctx.clone(), log_message.build()).await
 					}
 				}
 				Err(error) => {
@@ -122,7 +122,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 							log_message.push_bold(format!("{} ", &user.name));
 							log_message.push_line(format!("({}) from reviewer", &user.id));
 							log_message.push_codeblock(format!("{:?}", error), Some("rust"));
-							log_to_discord(log_message.build(), ctx.clone()).await
+							log_to_discord(ctx.clone(), log_message.build()).await
 						}
 					}
 				}

@@ -11,16 +11,21 @@ use serde::{Deserialize, Serialize};
 pub enum LevelRequestError {
 	LevelRequestExists,
 	RequestError,
-	SerializeError,
+	SerializeError(String),
 	UserOnCooldown(UserOnCooldownError),
 	RequestsDisabled,
-	RequestXApiError
+	RequestXApiError(ErrorMessage)
 }
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct UserOnCooldownError {
 	pub last_request_time: DateTime<Utc>,
 	pub request_cooldown: u64
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub struct ErrorMessage {
+	pub message: String
 }
 
 impl Display for LevelRequestError {
@@ -32,8 +37,11 @@ impl Display for LevelRequestError {
 			LevelRequestError::RequestError => {
 				write!(f, "Unable to make request to server")
 			}
-			LevelRequestError::SerializeError => {
-				write!(f, "Unable to serialize level request")
+			LevelRequestError::SerializeError(_field) => {
+				write!(
+					f,
+					"Unable to serialize level request, double check your YouTube link"
+				)
 			}
 			LevelRequestError::UserOnCooldown(cooldown_error_data) => {
 				let duration = (cooldown_error_data.last_request_time
@@ -79,7 +87,7 @@ impl Display for LevelRequestError {
 			LevelRequestError::RequestsDisabled => {
 				write!(f, "Requests are currently disabled ")
 			}
-			LevelRequestError::RequestXApiError => {
+			LevelRequestError::RequestXApiError(_error_message) => {
 				write!(f, "The server failed to make the level request")
 			}
 		}
