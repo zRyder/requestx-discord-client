@@ -45,7 +45,9 @@ impl<'a> LevelRequestService<'a> {
 	) -> Result<LevelRequestData, LevelRequestError> {
 		if !Self::is_valid_youtube_link(&level_request.youtube_video_link) {
 			warn!("Invalid link: {}", &level_request.youtube_video_link);
-			return Err(LevelRequestError::SerializeError);
+			return Err(LevelRequestError::SerializeError(
+				level_request.youtube_video_link
+			));
 		}
 		match self
 			.requestx_api_client
@@ -63,8 +65,10 @@ impl<'a> LevelRequestService<'a> {
 	) -> Result<LevelRequestData, LevelRequestError> {
 		if let Some(youtube_video_link) = &level_request.youtube_video_link {
 			if !Self::is_valid_youtube_link(youtube_video_link) {
-				warn!("Invalid link: {}", youtube_video_link);
-				return Err(LevelRequestError::SerializeError);
+				warn!("Invalid link: {}", &youtube_video_link);
+				return Err(LevelRequestError::SerializeError(
+					youtube_video_link.clone()
+				));
 			}
 		}
 		match self

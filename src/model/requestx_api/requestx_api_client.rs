@@ -20,7 +20,7 @@ use crate::{
 		request_manager::UpdateRequestManager,
 		requestx_api::{
 			error::{
-				level_request_error::{LevelRequestError, UserOnCooldownError},
+				level_request_error::{ErrorMessage, LevelRequestError, UserOnCooldownError},
 				level_review_error::LevelReviewError
 			},
 			level_request_data::LevelRequestData,
@@ -77,7 +77,9 @@ impl RequestXApiClient<'_> {
 				if status_code.eq(&StatusCode::NOT_FOUND) {
 					Ok(None)
 				} else if status_code.is_server_error() || status_code.is_client_error() {
-					Err(LevelRequestError::RequestXApiError)
+					Err(LevelRequestError::RequestXApiError(
+						serde_json::from_str::<ErrorMessage>(&*response_body).unwrap()
+					))
 				} else {
 					let level_data: LevelRequestData =
 						serde_json::from_str(&response_body).unwrap();
@@ -176,7 +178,7 @@ impl RequestXApiClient<'_> {
 			}
 			Err(err) => {
 				error!("Error serializing make level request: {}", err);
-				Err(LevelRequestError::SerializeError)
+				Err(LevelRequestError::SerializeError(err.to_string()))
 			}
 		}
 	}
@@ -225,7 +227,7 @@ impl RequestXApiClient<'_> {
 			}
 			Err(err) => {
 				error!("Error serializing make level request: {}", err);
-				Err(LevelRequestError::SerializeError)
+				Err(LevelRequestError::SerializeError(err.to_string()))
 			}
 		}
 	}
@@ -490,7 +492,7 @@ impl RequestXApiClient<'_> {
 					"Failed to serialize update request manager request: {}",
 					err
 				);
-				Err(LevelRequestError::SerializeError)
+				Err(LevelRequestError::SerializeError(err.to_string()))
 			}
 		}
 	}
@@ -537,7 +539,7 @@ impl RequestXApiClient<'_> {
 			}
 			Err(err) => {
 				error!("Failed to serialize update message ID request: {}", err);
-				Err(LevelRequestError::SerializeError)
+				Err(LevelRequestError::SerializeError(err.to_string()))
 			}
 		}
 	}
@@ -587,7 +589,7 @@ impl RequestXApiClient<'_> {
 					"Unable to serialize update level request thread ID: {}",
 					err
 				);
-				Err(LevelRequestError::SerializeError)
+				Err(LevelRequestError::SerializeError(err.to_string()))
 			}
 		}
 	}
@@ -621,7 +623,9 @@ impl RequestXApiClient<'_> {
 				serde_json::from_str::<UserOnCooldownError>(&*response_body).unwrap()
 			),
 			StatusCode::SERVICE_UNAVAILABLE => LevelRequestError::RequestsDisabled,
-			_ => LevelRequestError::RequestXApiError
+			_ => LevelRequestError::RequestXApiError(
+				serde_json::from_str::<ErrorMessage>(&*response_body).unwrap()
+			)
 		}
 	}
 
