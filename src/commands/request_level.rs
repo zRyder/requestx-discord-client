@@ -374,14 +374,12 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 			}
 			if let Some(discord_thread_id) = level_request_data.discord_thread_id {
 				if let Err(delete_message_error) =
-					ChannelId::new(discord_thread_id)
-						.delete(&ctx.http)
-						.await
+					ChannelId::new(discord_thread_id).delete(&ctx.http).await
 				{
 					error!(
-					"Unable to delete level request thread: {}",
-					delete_message_error
-				);
+						"Unable to delete level request thread: {}",
+						delete_message_error
+					);
 					return;
 				}
 			}

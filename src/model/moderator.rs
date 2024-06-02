@@ -12,6 +12,7 @@ pub struct Moderator {
 #[derive(PartialEq, Deserialize, Debug, Copy, Clone)]
 pub enum SuggestedScore {
 	NoRate,
+	Rated,
 	One,
 	Two,
 	Three,
@@ -39,6 +40,7 @@ impl FromStr for SuggestedScore {
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		match s {
 			"NoRate" => Ok(Self::NoRate),
+			"Rated" => Ok(Self::Rated),
 			"One" => Ok(Self::One),
 			"Two" => Ok(Self::Two),
 			"Three" => Ok(Self::Three),
@@ -61,6 +63,7 @@ impl Serialize for SuggestedScore {
 	{
 		match self {
 			SuggestedScore::NoRate => serializer.serialize_str("NoRate"),
+			SuggestedScore::Rated => serializer.serialize_str("Rated"),
 			SuggestedScore::One => serializer.serialize_str("One"),
 			SuggestedScore::Two => serializer.serialize_str("Two"),
 			SuggestedScore::Three => serializer.serialize_str("Three"),

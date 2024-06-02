@@ -10,7 +10,8 @@ use serenity::{
 use tokio::{sync::mpsc, task};
 
 use crate::{
-	config::client_config::CLIENT_CONFIG, model::requestx_api::level_request_data::LevelRequestData
+	config::client_config::CLIENT_CONFIG,
+	model::{request_score::LevelLength, requestx_api::level_request_data::LevelRequestData}
 };
 
 pub async fn create_thread(
@@ -67,9 +68,31 @@ pub async fn send_level_request_message_to_discord(
 	) {
 		request_message.push_line(format!("\"{}\" by {}", level_name, level_creator_name));
 	}
-	request_message
-		.push_line(format!("{}", &level_request_data.level_id))
-		.push_line(format!("Requested {}", &level_request_data.request_score));
+	request_message.push_line(format!("{}", &level_request_data.level_id));
+	if let Some(level_length) = level_request_data.level_length {
+		let level_rating_str = level_request_data.request_score.to_string();
+		let slice: Vec<&str> = level_rating_str.split(&[' ', '/'][..]).collect();
+		let output_str;
+		match level_length {
+			LevelLength::Platformer => {
+				output_str = format!(
+					"{}{} {}",
+					slice.get(0).unwrap(),
+					slice.get(1).unwrap(),
+					slice.get(3).unwrap()
+				);
+			}
+			_ => {
+				output_str = format!(
+					"{} {} {}",
+					slice.get(0).unwrap(),
+					slice.get(1).unwrap(),
+					slice.get(2).unwrap()
+				);
+			}
+		}
+		request_message.push_line(format!("Requested {}", output_str));
+	}
 	if level_request_data.has_requested_feedback {
 		request_message.push_line("Feedback has been requested!");
 	}
