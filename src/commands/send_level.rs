@@ -35,6 +35,7 @@ pub fn register_send_level() -> CreateCommand {
 			)
 			.required(true)
 			.add_string_choice("No Send", "NoRate")
+			.add_string_choice("Already Rated", "Rated")
 			.add_string_choice("Auto, 1 Star/Moon", "One")
 			.add_string_choice("Easy, 2 Stars/Moons", "Two")
 			.add_string_choice("Normal, 3 Stars/Moons", "Three")
@@ -101,6 +102,9 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 			if send_level_request.suggested_score == SuggestedScore::NoRate {
 				send_level_message.push_bold("has not ");
 				send_level_message.push("been sent...");
+			} else if send_level_request.suggested_score == SuggestedScore::Rated {
+				send_level_message.push_bold("has already ");
+				send_level_message.push("been rated.");
 			} else {
 				send_level_message.push_bold("has ");
 				send_level_message.push("been sent for ");
