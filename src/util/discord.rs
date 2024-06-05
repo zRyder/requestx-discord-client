@@ -76,7 +76,7 @@ pub async fn send_level_request_message_to_discord(
 		match level_length {
 			LevelLength::Platformer => {
 				output_str = format!(
-					"{}{} {}",
+					"{} {} {}",
 					slice.get(0).unwrap(),
 					slice.get(1).unwrap(),
 					slice.get(3).unwrap()
@@ -92,6 +92,8 @@ pub async fn send_level_request_message_to_discord(
 			}
 		}
 		request_message.push_line(format!("Requested {}", output_str));
+	} else {
+		request_message.push_line(format!("Requested {}", level_request_data.request_score));
 	}
 	if level_request_data.has_requested_feedback {
 		request_message.push_line("Feedback has been requested!");
