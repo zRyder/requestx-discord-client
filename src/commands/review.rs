@@ -89,6 +89,14 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 				invoke_ephermal(&message_string, &ctx, &command).await
 			}
 			Err(level_review_error) => {
+				let mut log_message = MessageBuilder::new();
+				log_message.push_bold(format!("{} ", command.user.name));
+				log_message.push_line(format!(
+					"({}) caused an error when reviewing a level",
+					command.user.id
+				));
+				log_message.push_codeblock(format!("{:?}", level_review_error), Some("rust"));
+				log_to_discord(ctx.clone(), log_message.build()).await;
 				invoke_ephermal(&level_review_error.to_string(), &ctx, &command).await
 			}
 		}
