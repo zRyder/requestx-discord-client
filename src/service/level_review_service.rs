@@ -6,7 +6,7 @@ use serenity::all::{
 use crate::{
 	config::client_config::CLIENT_CONFIG,
 	model::{
-		level_request::{GetLevelRequest, GetLevelReview, UpdateLevelRequestThreadId},
+		level_request::{GetLevelRequest, GetLevelReview},
 		level_review::LevelReview,
 		requestx_api::{
 			error::{level_request_error::LevelRequestError, level_review_error::LevelReviewError},
@@ -14,8 +14,7 @@ use crate::{
 			requestx_api_client::RequestXApiClient
 		}
 	},
-	service::level_request_service::LevelRequestService,
-	util::discord::create_thread
+	service::level_request_service::LevelRequestService
 };
 
 pub struct LevelReviewService<'a> {
@@ -57,146 +56,92 @@ impl<'a> LevelReviewService<'a> {
 			.get_level_request(get_level_request)
 			.await
 		{
-			Ok(potential_level_request) => {
-				if let Some(level_request) = potential_level_request {
-					if !level_request.has_requested_feedback
-						&& reviewer_discord_user_id.ne(&CLIENT_CONFIG.discord_bot_admin_id)
-					{
-						return Ok("The user has not requested feedback for this level".to_string());
-					}
-					if let Some(level_request_message_id) = level_request.discord_message_id {
-						// Request Message Exists
-						let get_level_review = GetLevelReview {
-							discord_user_id: reviewer_discord_user_id,
-							level_id
-						};
-						match self.get_level_review(get_level_review).await {
-							Ok(potential_level_review) => {
-								let thread_id;
-								if let Some(thread) = level_request.discord_thread_id {
-									thread_id = thread;
-								} else {
-									if let Ok(thread) = create_thread(
-										&ctx,
-										&command,
-										level_request_message_id,
-										&level_request
-									)
-									.await
-									{
-										thread_id = thread;
-
-										let update_level_request_thread_id =
-											UpdateLevelRequestThreadId {
-												level_id: level_request.level_id,
-												discord_thread_id: thread_id
-											};
-
-										if let Err(update_level_request_thread_id_error) =
-											level_request_service
-												.update_request_thread_id(
-													update_level_request_thread_id
-												)
-												.await
-										{
-											error!(
-												"Unable to update level request thread ID: {}",
-												update_level_request_thread_id_error
-											);
-											return Err(LevelReviewError::RequestError);
-										}
-									} else {
-										return Err(LevelReviewError::RequestError);
-									}
-								}
-
-								let mut review_message = MessageBuilder::new();
-								review_message
-									.push_bold_line(format!(
-										"Review by {}",
-										command.user.id.mention()
-									))
-									.push_line("")
-									.push_quote_line_safe(&review_contents);
-
-								if level_request.notify {
-									review_message.push_line("");
-									review_message.push_line(format!(
-										"{}",
-										UserId::new(level_request.discord_id).mention()
-									));
-								}
-
-								let review_discord_message_id: u64;
-								if let Some(existing_level_review) = potential_level_review {
-									// EXISTING LEVEL REVIEW
-									if let Some(review_message_id) =
-										existing_level_review.discord_message_id
-									{
-										review_discord_message_id = review_message_id;
-										if let Err(edit_message_error) = ChannelId::new(thread_id)
-											.edit_message(
-												&ctx.http,
-												review_message_id,
-												EditMessage::new().content(&review_message.build())
-											)
-											.await
-										{
-											error!(
-												"Unable to edit review message: {}",
-												edit_message_error
-											);
-											return Err(LevelReviewError::RequestError);
-										};
-									} else {
-										// There is probably a database inconsistency if this
-										// happens
-										return Err(LevelReviewError::RequestError);
-									}
-								} else {
-									match ChannelId::new(thread_id)
-										.say(&ctx.http, &review_message.build())
-										.await
-									{
-										Ok(message) => review_discord_message_id = message.id.get(),
-										Err(send_level_review_error) => {
-											error!(
-												"Unable to send level review to Discord: {}",
-												send_level_review_error
-											);
-											return Err(LevelReviewError::RequestError);
-										}
-									};
-								};
-
-								let level_review = LevelReview {
-									discord_user_id: reviewer_discord_user_id,
-									discord_message_id: review_discord_message_id,
-									level_id,
-									review_contents: review_contents.clone()
-								};
-								if let Err(save_level_review_error) =
-									self.post_level_review(&level_review).await
-								{
-									Err(save_level_review_error)
-								} else {
-									Ok("Review submitted".to_string())
-								}
-							}
-							Err(level_review_error) => Err(level_review_error)
-						}
-					} else {
-						Err(LevelReviewError::RequestError)
-					}
-				} else {
-					Err(LevelReviewError::LevelRequestDoesNotExists)
+			Ok(Some(level_request)) => {
+				if !level_request.has_requested_feedback
+					&& reviewer_discord_user_id.ne(&CLIENT_CONFIG.discord_bot_admin_id)
+				{
+					return Ok("The user has not requested feedback for this level".to_string());
 				}
+
+				let review_discord_message_id;
+				let mut review_message = MessageBuilder::new();
+				review_message
+					.push_bold_line(format!("Review by {}", command.user.id.mention()))
+					.push_line("")
+					.push_quote_line_safe(&review_contents);
+
+				if level_request.notify {
+					review_message.push_line("");
+					review_message.push_line(format!(
+						"{}",
+						UserId::new(level_request.discord_id).mention()
+					));
+				}
+
+				let get_level_review = GetLevelReview {
+					discord_user_id: reviewer_discord_user_id,
+					level_id
+				};
+
+				match self.get_level_review(get_level_review).await {
+					Ok(Some(existing_level_review)) => {
+						if let Err(edit_message_error) =
+							ChannelId::new(level_request.discord_message_id.unwrap())
+								.edit_message(
+									&ctx.http,
+									existing_level_review.discord_message_id.unwrap(),
+									EditMessage::new().content(&review_message.build())
+								)
+								.await
+						{
+							error!("Unable to edit review message: {}", edit_message_error);
+							return Err(LevelReviewError::RequestError);
+						};
+						review_discord_message_id =
+							existing_level_review.discord_message_id.unwrap();
+					}
+					Ok(None) => {
+						match ChannelId::new(level_request.discord_message_id.unwrap())
+							.say(&ctx.http, &review_message.build())
+							.await
+						{
+							Ok(message) => review_discord_message_id = message.id.get(),
+							Err(send_level_review_error) => {
+								error!(
+									"Unable to send level review to Discord: {}",
+									send_level_review_error
+								);
+								return Err(LevelReviewError::RequestError);
+							}
+						};
+					}
+					Err(level_review_error) => {
+						error!("Error getting level review: {}", level_review_error);
+						return Err(level_review_error);
+					}
+				}
+
+				let level_review = LevelReview {
+					discord_user_id: reviewer_discord_user_id,
+					discord_message_id: review_discord_message_id,
+					level_id,
+					review_contents: review_contents.clone()
+				};
+				if let Err(save_level_review_error) = self.post_level_review(&level_review).await {
+					Err(save_level_review_error)
+				} else {
+					Ok("Review submitted".to_string())
+				}
+			}
+			Ok(None) => {
+				error!("Level request with ID {} does not exist", level_id);
+				Err(LevelReviewError::LevelRequestDoesNotExists)
 			}
 			Err(error) => match error {
 				LevelRequestError::RequestError => Err(LevelReviewError::RequestError),
 				LevelRequestError::SerializeError(_field) => Err(LevelReviewError::RequestError),
-				LevelRequestError::RequestXApiError(_error_message) => {
-					Err(LevelReviewError::RequestXApiError)
+				LevelRequestError::RequestXApiError(error_message) => {
+					Err(LevelReviewError::RequestXApiError(error_message))
 				}
 				_ => {
 					unreachable!()
