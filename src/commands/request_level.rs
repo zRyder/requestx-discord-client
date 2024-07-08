@@ -17,7 +17,7 @@ use crate::{
 	},
 	service::level_request_service::LevelRequestService,
 	util,
-	util::discord::{invoke_ephermal, log_to_discord}
+	util::discord::{create_thread, invoke_ephermal, log_to_discord}
 };
 
 pub fn register_request_level() -> CreateCommand {
@@ -130,6 +130,23 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 				.await
 			{
 				Ok(message_data) => {
+					if let Err(create_thread_error) =
+						create_thread(&ctx, &command, message_data.id.get(), &level_request_data)
+							.await
+					{
+						error!("Error creating thread: {}", create_thread_error);
+						let mut log_message = MessageBuilder::new();
+						log_message.push_bold(format!("{} ", command.user.name));
+						log_message.push_line(format!(
+							"({}) requested a level {} but the thread could not be created",
+							command.user.id, level_request_data.level_id
+						));
+						log_message
+							.push_codeblock(format!("{:?}", &level_request_data), Some("rust"));
+						log_message
+							.push_codeblock(format!("{:?}", create_thread_error), Some("rust"));
+						log_to_discord(ctx.clone(), log_message.build()).await
+					}
 					let update_request_message_id = UpdateLevelRequestMessageId {
 						level_id: level_request_data.level_id,
 						discord_message_id: message_data.id.get()
@@ -372,16 +389,15 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 				);
 				return;
 			}
-			if let Some(discord_thread_id) = level_request_data.discord_thread_id {
-				if let Err(delete_message_error) =
-					ChannelId::new(discord_thread_id).delete(&ctx.http).await
-				{
-					error!(
-						"Unable to delete level request thread: {}",
-						delete_message_error
-					);
-					return;
-				}
+			if let Err(delete_message_error) =
+				ChannelId::new(level_request_data.discord_message_id.unwrap())
+					.delete(&ctx.http)
+					.await
+			{
+				error!(
+					"Unable to delete level request thread: {:?}",
+					delete_message_error
+				);
 			}
 
 			{

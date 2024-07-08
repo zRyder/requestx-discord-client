@@ -90,7 +90,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 	let service = ModeratorService::new();
 	let content;
 
-	match service.send_level(&ctx, &command, send_level_request).await {
+	match service.send_level(send_level_request).await {
 		Ok(level_request_data) => {
 			let mut send_level_message = MessageBuilder::new();
 
@@ -136,7 +136,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 				));
 			}
 
-			match ChannelId::new(level_request_data.discord_thread_id.unwrap())
+			match ChannelId::new(level_request_data.discord_message_id.unwrap())
 				.say(&ctx.http, &send_level_message.build())
 				.await
 			{

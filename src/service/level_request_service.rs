@@ -4,8 +4,7 @@ use crate::{
 	config::constants::YOUTUBE_LINK_REGEX,
 	model::{
 		level_request::{
-			GetLevelRequest, LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId,
-			UpdateLevelRequestThreadId
+			GetLevelRequest, LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId
 		},
 		requestx_api::{
 			error::level_request_error::LevelRequestError, level_request_data::LevelRequestData,
@@ -102,20 +101,6 @@ impl<'a> LevelRequestService<'a> {
 		match self
 			.requestx_api_client
 			.update_request_message_id(update_level_request_message)
-			.await
-		{
-			Ok(()) => Ok(()),
-			Err(error) => Err(error)
-		}
-	}
-
-	pub async fn update_request_thread_id(
-		&self,
-		update_level_thread_message: UpdateLevelRequestThreadId
-	) -> Result<(), LevelRequestError> {
-		match self
-			.requestx_api_client
-			.update_request_thread_id(update_level_thread_message)
 			.await
 		{
 			Ok(()) => Ok(()),

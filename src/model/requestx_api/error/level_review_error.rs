@@ -3,12 +3,14 @@ use std::{
 	fmt::{Display, Formatter}
 };
 
+use crate::model::requestx_api::error::level_request_error::ErrorMessage;
+
 #[derive(Debug, PartialEq)]
 pub enum LevelReviewError {
 	LevelRequestDoesNotExists,
 	RequestError,
 	SerializeError,
-	RequestXApiError
+	RequestXApiError(ErrorMessage)
 }
 
 impl Display for LevelReviewError {
@@ -23,7 +25,7 @@ impl Display for LevelReviewError {
 			LevelReviewError::SerializeError => {
 				write!(f, "Unable to serialized level review")
 			}
-			LevelReviewError::RequestXApiError => {
+			LevelReviewError::RequestXApiError(_error_message) => {
 				write!(f, "The server failed to upload the level review")
 			}
 		}

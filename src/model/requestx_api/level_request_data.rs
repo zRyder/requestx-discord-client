@@ -7,7 +7,6 @@ pub struct LevelRequestData {
 	pub level_id: u64,
 	pub discord_id: u64,
 	pub discord_message_id: Option<u64>,
-	pub discord_thread_id: Option<u64>,
 	pub level_name: Option<String>,
 	pub level_author: Option<String>,
 	pub level_length: Option<LevelLength>,

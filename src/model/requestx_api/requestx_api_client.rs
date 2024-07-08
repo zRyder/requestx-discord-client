@@ -13,7 +13,7 @@ use crate::{
 	model::{
 		level_request::{
 			GetLevelRequest, GetLevelReview, LevelRequest, UpdateLevelRequest,
-			UpdateLevelRequestMessageId, UpdateLevelRequestThreadId
+			UpdateLevelRequestMessageId
 		},
 		level_review::LevelReview,
 		moderator::Moderator,
@@ -114,16 +114,22 @@ impl RequestXApiClient<'_> {
 
 		match response {
 			Ok(response) => {
-				if response.status().eq(&StatusCode::NOT_FOUND) {
+				let status_code = response.status();
+				let response_body = response.text().await.unwrap();
+
+				if status_code.eq(&StatusCode::NOT_FOUND) {
 					Ok(None)
-				} else if response.status().is_client_error() {
-					Err(LevelReviewError::RequestXApiError)
-				} else if response.status().is_server_error() {
-					Err(LevelReviewError::RequestXApiError)
+				} else if status_code.is_client_error() {
+					Err(LevelReviewError::RequestXApiError(
+						serde_json::from_str::<ErrorMessage>(&*response_body).unwrap()
+					))
+				} else if status_code.is_server_error() {
+					Err(LevelReviewError::RequestXApiError(
+						serde_json::from_str::<ErrorMessage>(&*response_body).unwrap()
+					))
 				} else {
-					let response_string = response.text().await.unwrap();
 					let level_review_data: LevelReviewData =
-						serde_json::from_str(&response_string).unwrap();
+						serde_json::from_str(&response_body).unwrap();
 					Ok(Some(level_review_data))
 				}
 			}
@@ -295,14 +301,20 @@ impl RequestXApiClient<'_> {
 
 				match response {
 					Ok(response) => {
-						if response.status().is_client_error() {
-							Err(LevelReviewError::RequestXApiError)
-						} else if response.status().is_server_error() {
-							Err(LevelReviewError::RequestXApiError)
+						let status_code = response.status();
+						let response_body = response.text().await.unwrap();
+
+						if status_code.is_client_error() {
+							Err(LevelReviewError::RequestXApiError(
+								serde_json::from_str::<ErrorMessage>(&*response_body).unwrap()
+							))
+						} else if status_code.is_server_error() {
+							Err(LevelReviewError::RequestXApiError(
+								serde_json::from_str::<ErrorMessage>(&*response_body).unwrap()
+							))
 						} else {
-							let response_string = response.text().await.unwrap();
 							let level_review_data: LevelReviewData =
-								serde_json::from_str(&response_string).unwrap();
+								serde_json::from_str(&response_body).unwrap();
 							Ok(level_review_data)
 						}
 					}
@@ -539,56 +551,6 @@ impl RequestXApiClient<'_> {
 			}
 			Err(err) => {
 				error!("Failed to serialize update message ID request: {}", err);
-				Err(LevelRequestError::SerializeError(err.to_string()))
-			}
-		}
-	}
-
-	pub async fn update_request_thread_id(
-		&self,
-		update_level_request: UpdateLevelRequestThreadId
-	) -> Result<(), LevelRequestError> {
-		match serde_json::to_string(&update_level_request) {
-			Ok(serialized_request) => {
-				let mut headers = HeaderMap::new();
-				Self::get_auth_header(&mut headers).await;
-				let response = self
-					.web_client
-					.patch(format!(
-						"{}{}",
-						self.requestx_api_config.base_url,
-						self.requestx_api_config.paths.update_request_thread_id
-					))
-					.body(serialized_request)
-					.headers(headers)
-					.send()
-					.await;
-
-				match response {
-					Ok(response) => {
-						let status_code = response.status();
-						let response_body = response.text().await.unwrap();
-
-						if status_code.is_client_error() || status_code.is_server_error() {
-							Err(RequestXApiClient::handle_level_request_client_error(
-								status_code,
-								response_body
-							))
-						} else {
-							Ok(())
-						}
-					}
-					Err(error) => {
-						error!("{}", error);
-						Err(LevelRequestError::RequestError)
-					}
-				}
-			}
-			Err(err) => {
-				error!(
-					"Unable to serialize update level request thread ID: {}",
-					err
-				);
 				Err(LevelRequestError::SerializeError(err.to_string()))
 			}
 		}
