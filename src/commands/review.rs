@@ -5,8 +5,8 @@ use serenity::all::{
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
-	service::level_review_service::LevelReviewService,
-	util::discord::{invoke_ephermal, log_to_discord}
+	serenity::discord::{invoke_ephermal, log_to_discord},
+	service::level_review_service::LevelReviewService
 };
 
 pub fn register_review() -> CreateCommand {

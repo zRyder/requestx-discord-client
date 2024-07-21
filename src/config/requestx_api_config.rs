@@ -12,6 +12,7 @@ pub struct RequestxApiConfig {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RequestxApiConfigPaths {
+	pub get_user: String,
 	pub request_level: String,
 	pub review_level: String,
 	pub reviewer: String,

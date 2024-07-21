@@ -4,8 +4,8 @@ use serenity::{
 };
 
 use crate::{
-	model::request_manager::UpdateRequestManager,
-	service::request_manager_service::RequestManagerService, util::discord::invoke_ephermal
+	model::request_manager::UpdateRequestManager, serenity::discord::invoke_ephermal,
+	service::request_manager_service::RequestManagerService
 };
 
 pub fn register_request_manager() -> CreateCommand {

@@ -4,3 +4,4 @@ pub mod level_review_service;
 pub mod moderator_service;
 pub mod request_manager_service;
 pub mod reviewer_service;
+pub mod user_service;

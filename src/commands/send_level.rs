@@ -12,8 +12,8 @@ use crate::{
 		moderator::{Moderator, SuggestedRating, SuggestedScore},
 		request_score::LevelLength
 	},
-	service::moderator_service::ModeratorService,
-	util::discord::{invoke_ephermal, log_to_discord}
+	serenity::discord::{invoke_ephermal, log_to_discord},
+	service::moderator_service::ModeratorService
 };
 
 pub fn register_send_level() -> CreateCommand {

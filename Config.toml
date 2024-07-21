@@ -13,6 +13,7 @@ discord_public_channel_id = "{{REQUESTX_DISCORD_PUBLIC_CHANNEL_ID}}"
 base_url = "{{REQUESTX_BASE_URL}}"
 
 [requestx_api_config.paths]
+get_user = "/api/v1/user"
 request_level = "/api/v1/request_level"
 review_level = "/api/v1/review_level"
 reviewer = "/api/v1/reviewer"

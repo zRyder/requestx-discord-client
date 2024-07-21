@@ -15,9 +15,10 @@ use crate::{
 		},
 		request_score::RequestRating
 	},
-	service::level_request_service::LevelRequestService,
-	util,
-	util::discord::{create_thread, invoke_ephermal, log_to_discord}
+	serenity::discord::{
+		create_thread, invoke_ephermal, log_to_discord, send_level_request_message_to_discord
+	},
+	service::level_request_service::LevelRequestService
 };
 
 pub fn register_request_level() -> CreateCommand {
@@ -126,9 +127,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			content = "Level has been requested successfully!";
 			invoke_ephermal(&content, &ctx, &command).await;
 
-			match util::discord::send_level_request_message_to_discord(&ctx, &level_request_data)
-				.await
-			{
+			match send_level_request_message_to_discord(&ctx, &level_request_data).await {
 				Ok(message_data) => {
 					if let Err(create_thread_error) =
 						create_thread(&ctx, &command, message_data.id.get(), &level_request_data)
@@ -305,8 +304,7 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 	match service.update_level_request(update_level_request).await {
 		Ok(level_request_data) => {
 			if let Err(edit_message_error) =
-				util::discord::send_level_request_message_to_discord(&ctx, &level_request_data)
-					.await
+				send_level_request_message_to_discord(&ctx, &level_request_data).await
 			{
 				error!(
 					"Unable to edit level request message: {}",

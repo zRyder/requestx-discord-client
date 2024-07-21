@@ -4,8 +4,9 @@ use serenity::all::{
 };
 
 use crate::{
-	service::reviewer_service::ReviewerService,
-	util::discord::{invoke_ephermal, log_to_discord}
+	config::common_config::APP_CONFIG,
+	serenity::discord::{invoke_ephermal, log_to_discord},
+	service::reviewer_service::ReviewerService
 };
 
 pub fn register_add_reviewer() -> CreateCommand {
@@ -24,7 +25,7 @@ pub fn register_add_reviewer() -> CreateCommand {
 pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 	let content: String;
 	let actor_user_id = command.user.id.get();
-	if actor_user_id != 164072941645070336 {
+	if actor_user_id != APP_CONFIG.client_config.discord_bot_admin_id {
 		content = "Forbidden".to_string();
 		invoke_ephermal(&content, &ctx, &command).await;
 	} else {
