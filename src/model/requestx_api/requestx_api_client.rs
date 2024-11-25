@@ -19,16 +19,19 @@ use crate::{
 		moderator::Moderator,
 		request_manager::UpdateRequestManager,
 		requestx_api::{
+			discord_user_data::DiscordUserData,
 			error::{
+				discord_user_error::DiscordUserError,
 				level_request_error::{ErrorMessage, LevelRequestError, UserOnCooldownError},
 				level_review_error::LevelReviewError
 			},
 			level_request_data::LevelRequestData,
 			level_review_data::LevelReviewData,
-			moderator_data::ModeratorError,
+			moderator_data::{ModeratorError, SendLevelData},
 			reviewer_data::ReviewerError
 		},
-		reviewer::{AddReviewerRequest, RemoveReviewerRequest}
+		reviewer::{AddReviewerRequest, RemoveReviewerRequest},
+		user::GetDiscordUserRequest
 	},
 	service::auth_service::JWT
 };
@@ -48,6 +51,48 @@ impl RequestXApiClient<'_> {
 				.default_headers(default_headers)
 				.build()
 				.expect("Client::new")
+		}
+	}
+
+	pub async fn get_user(
+		&self,
+		get_discord_user_request: GetDiscordUserRequest
+	) -> Result<Option<DiscordUserData>, DiscordUserError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
+		let response = self
+			.web_client
+			.get(format!(
+				"{}{}/{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.get_user,
+				get_discord_user_request.discord_user_id
+			))
+			.headers(headers)
+			.send()
+			.await;
+
+		match response {
+			Ok(response) => {
+				let status_code = response.status();
+				let response_body = response.text().await.unwrap();
+
+				if status_code.eq(&StatusCode::NOT_FOUND) {
+					Ok(None)
+				} else if status_code.is_server_error() || status_code.is_client_error() {
+					Err(DiscordUserError::RequestXApiError(
+						serde_json::from_str::<ErrorMessage>(&*response_body).unwrap()
+					))
+				} else {
+					let discord_user_data: DiscordUserData =
+						serde_json::from_str(&response_body).unwrap();
+					Ok(Some(discord_user_data))
+				}
+			}
+			Err(error) => {
+				error!("{}", error);
+				Err(DiscordUserError::RequestError)
+			}
 		}
 	}
 
@@ -411,7 +456,7 @@ impl RequestXApiClient<'_> {
 	pub async fn make_send_level_request(
 		&self,
 		send_level_request: Moderator
-	) -> Result<LevelRequestData, ModeratorError> {
+	) -> Result<SendLevelData, ModeratorError> {
 		match serde_json::to_string(&send_level_request) {
 			Ok(serialized_request) => {
 				let mut headers = HeaderMap::new();
@@ -438,9 +483,9 @@ impl RequestXApiClient<'_> {
 							Err(ModeratorError::RequestXApiError)
 						} else {
 							let response_string = resp.text().await.unwrap();
-							let level_request_data: LevelRequestData =
+							let send_level_data: SendLevelData =
 								serde_json::from_str(&response_string).unwrap();
-							Ok(level_request_data)
+							Ok(send_level_data)
 						}
 					}
 					Err(send_level_error) => {

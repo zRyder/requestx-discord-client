@@ -3,6 +3,25 @@ use std::{
 	fmt::{Display, Formatter}
 };
 
+use serde::{Deserialize, Serialize};
+
+use crate::model::{
+	moderator::{SuggestedRating, SuggestedScore},
+	requestx_api::level_request_data::LevelRequestData
+};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SendLevelData {
+	pub level_request: LevelRequestData,
+	pub moderator_data: ModeratorData
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ModeratorData {
+	pub suggested_score: SuggestedScore,
+	pub suggested_rating: SuggestedRating
+}
+
 #[derive(Debug, PartialEq)]
 pub enum ModeratorError {
 	LevelRequestDoesNotExist,

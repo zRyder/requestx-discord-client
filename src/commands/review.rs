@@ -5,8 +5,8 @@ use serenity::all::{
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
-	service::level_review_service::LevelReviewService,
-	util::discord::{invoke_ephermal, log_to_discord}
+	serenity::discord::{invoke_ephermal, log_to_discord},
+	service::level_review_service::LevelReviewService
 };
 
 pub fn register_review() -> CreateCommand {
@@ -72,7 +72,7 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 				&command,
 				level_id,
 				reviewer_discord_user_id,
-				review_contents
+				&review_contents
 			)
 			.await
 		{
@@ -84,6 +84,7 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 						"({}) left a review on level request ID: {}",
 						command.user.id, level_id
 					));
+					log_message.push_codeblock(format!("{}: {}", level_id, &review_contents), Some("rust"));
 					log_to_discord(ctx.clone(), log_message.build()).await
 				}
 				invoke_ephermal(&message_string, &ctx, &command).await

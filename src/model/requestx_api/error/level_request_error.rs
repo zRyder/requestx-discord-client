@@ -3,8 +3,10 @@ use std::{
 	fmt::{Display, Formatter}
 };
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+use crate::model::requestx_api::error::format_cooldown;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -44,44 +46,14 @@ impl Display for LevelRequestError {
 				)
 			}
 			LevelRequestError::UserOnCooldown(cooldown_error_data) => {
-				let duration = (cooldown_error_data.last_request_time
-					+ Duration::minutes(cooldown_error_data.request_cooldown as i64))
-					- Utc::now();
 				write!(
 					f,
 					"You are still on cooldown you, you can request again in **{}**.",
-					{
-						let hours = duration.num_hours();
-						let minutes = duration.num_minutes() - (hours * 60);
-						let seconds = duration.num_seconds() - (hours * 3600 + minutes * 60);
-
-						// Display the duration
-						let mut units = Vec::new();
-						if hours > 0 {
-							units.push(format!("{} hours", hours));
-						}
-						if minutes > 0 {
-							units.push(format!("{} minutes", minutes));
-						}
-						if seconds > 0 {
-							units.push(format!("{} seconds", seconds));
-						}
-
-						let duration_str: String;
-
-						if units.is_empty() {
-							duration_str = "0 seconds".to_string()
-						} else {
-							duration_str = if units.len() > 1 {
-								let last_unit = units.pop().unwrap();
-								let rest = units.join(", ");
-								format!("{} and {}", rest, last_unit)
-							} else {
-								units.join(", ")
-							};
-						}
-						duration_str
-					}
+					format_cooldown(
+						cooldown_error_data.last_request_time,
+						cooldown_error_data.request_cooldown as i64
+					)
+					.unwrap()
 				)
 			}
 			LevelRequestError::RequestsDisabled => {

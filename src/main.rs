@@ -4,7 +4,6 @@ mod model;
 
 mod serenity;
 mod service;
-mod util;
 
 use std::process;
 
@@ -22,7 +21,7 @@ async fn main() {
 	} else {
 		let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
 		let mut client = Client::builder(&APP_CONFIG.client_config.discord_bot_token, intents)
-			.event_handler(serenity::command_interaction_handler::Handler)
+			.event_handler(serenity::handler::Handler)
 			.await
 			.expect("Error creating client");
 		if let Err(why) = client.start().await {

@@ -6,7 +6,7 @@ use serenity::{
 };
 
 use crate::{
-	commands::{request_level, request_manager, review, reviewer, send_level},
+	commands::{request_level, request_manager, review, reviewer, send_level, user},
 	config::client_config::CLIENT_CONFIG
 };
 
@@ -54,6 +54,8 @@ impl EventHandler for Handler {
 					reviewer::register_remove_reviewer(),
 					send_level::register_send_level(),
 					request_manager::register_request_manager(),
+					user::register_view_cooldown(),
+					user::register_view_user_cooldown(),
 				]
 			)
 			.await
@@ -65,6 +67,8 @@ impl EventHandler for Handler {
 			debug!("Received command interaction: {command:#?}");
 
 			match command.data.name.as_str() {
+				"view-cooldown" => user::run_view_cooldown(&ctx, &command).await,
+				"view-user-cooldown" => user::run_view_user_cooldown(&ctx, &command).await,
 				"request-level" => request_level::run_request_level(&ctx, &command).await,
 				"edit-level-request" => request_level::run_edit_level_request(&ctx, &command).await,
 				"delete-level-request" => {
