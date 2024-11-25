@@ -3,7 +3,7 @@ use log::error;
 use crate::model::{
 	moderator::Moderator,
 	requestx_api::{
-		level_request_data::LevelRequestData, moderator_data::ModeratorError,
+		moderator_data::{ModeratorError, SendLevelData},
 		requestx_api_client::RequestXApiClient
 	}
 };
@@ -22,13 +22,13 @@ impl<'a> ModeratorService<'a> {
 	pub async fn send_level(
 		&self,
 		send_level_request: Moderator
-	) -> Result<LevelRequestData, ModeratorError> {
+	) -> Result<SendLevelData, ModeratorError> {
 		match self
 			.requestx_api_client
 			.make_send_level_request(send_level_request)
 			.await
 		{
-			Ok(level_request_data) => Ok(level_request_data),
+			Ok(send_level_data) => Ok(send_level_data),
 			Err(send_level_error) => {
 				error!("Error sending level: {}", send_level_error);
 				Err(send_level_error)

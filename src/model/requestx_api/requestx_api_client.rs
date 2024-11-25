@@ -27,7 +27,7 @@ use crate::{
 			},
 			level_request_data::LevelRequestData,
 			level_review_data::LevelReviewData,
-			moderator_data::ModeratorError,
+			moderator_data::{ModeratorError, SendLevelData},
 			reviewer_data::ReviewerError
 		},
 		reviewer::{AddReviewerRequest, RemoveReviewerRequest},
@@ -456,7 +456,7 @@ impl RequestXApiClient<'_> {
 	pub async fn make_send_level_request(
 		&self,
 		send_level_request: Moderator
-	) -> Result<LevelRequestData, ModeratorError> {
+	) -> Result<SendLevelData, ModeratorError> {
 		match serde_json::to_string(&send_level_request) {
 			Ok(serialized_request) => {
 				let mut headers = HeaderMap::new();
@@ -483,9 +483,9 @@ impl RequestXApiClient<'_> {
 							Err(ModeratorError::RequestXApiError)
 						} else {
 							let response_string = resp.text().await.unwrap();
-							let level_request_data: LevelRequestData =
+							let send_level_data: SendLevelData =
 								serde_json::from_str(&response_string).unwrap();
-							Ok(level_request_data)
+							Ok(send_level_data)
 						}
 					}
 					Err(send_level_error) => {

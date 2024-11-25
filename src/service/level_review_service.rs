@@ -48,7 +48,7 @@ impl<'a> LevelReviewService<'a> {
 		command: &CommandInteraction,
 		level_id: u64,
 		reviewer_discord_user_id: u64,
-		review_contents: String
+		review_contents: &str
 	) -> Result<String, LevelReviewError> {
 		let get_level_request = GetLevelRequest { level_id };
 		let level_request_service = LevelRequestService::new();
@@ -68,7 +68,7 @@ impl<'a> LevelReviewService<'a> {
 				review_message
 					.push_bold_line(format!("Review by {}", command.user.id.mention()))
 					.push_line("")
-					.push_quote_line_safe(&review_contents);
+					.push_quote_line_safe(review_contents);
 
 				if level_request.notify {
 					review_message.push_line("");
@@ -125,7 +125,7 @@ impl<'a> LevelReviewService<'a> {
 					discord_user_id: reviewer_discord_user_id,
 					discord_message_id: review_discord_message_id,
 					level_id,
-					review_contents: review_contents.clone()
+					review_contents: review_contents.to_string()
 				};
 				if let Err(save_level_review_error) = self.post_level_review(&level_review).await {
 					Err(save_level_review_error)

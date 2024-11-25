@@ -91,18 +91,18 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 	let content;
 
 	match service.send_level(send_level_request).await {
-		Ok(level_request_data) => {
+		Ok(send_level_data) => {
 			let mut send_level_message = MessageBuilder::new();
 
-			if let Some(ref level_name) = level_request_data.level_name {
+			if let Some(ref level_name) = send_level_data.level_request.level_name {
 				send_level_message.push(format!("\"{}\" ", level_name));
 			} else {
 				send_level_message.push("The level ");
 			}
-			if send_level_request.suggested_score == SuggestedScore::NoRate {
+			if send_level_data.moderator_data.suggested_score == SuggestedScore::NoRate {
 				send_level_message.push_bold("has not ");
 				send_level_message.push("been sent...");
-			} else if send_level_request.suggested_score == SuggestedScore::Rated {
+			} else if send_level_data.moderator_data.suggested_score == SuggestedScore::Rated {
 				send_level_message.push_bold("has already ");
 				send_level_message.push("been rated.");
 			} else {
@@ -116,7 +116,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 					serde_json::to_string(&suggested_score)
 						.unwrap()
 						.replace("\"", ""),
-					if let Some(level_length) = level_request_data.level_length {
+					if let Some(level_length) = send_level_data.level_request.level_length {
 						if level_length == LevelLength::Platformer {
 							"Moons!"
 						} else {
@@ -128,15 +128,15 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 				));
 			}
 
-			if level_request_data.notify {
+			if send_level_data.level_request.notify {
 				send_level_message.push_line("");
 				send_level_message.push_line(format!(
 					"{}",
-					UserId::new(level_request_data.discord_id).mention()
+					UserId::new(send_level_data.level_request.discord_id).mention()
 				));
 			}
 
-			match ChannelId::new(level_request_data.discord_message_id.unwrap())
+			match ChannelId::new(send_level_data.level_request.discord_message_id.unwrap())
 				.say(&ctx.http, &send_level_message.build())
 				.await
 			{
@@ -147,10 +147,14 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 					{
 						let mut log_message = MessageBuilder::new();
 						log_message.push_line("Level has been sent to RobTop".to_string());
-						log_message
-							.push_codeblock(format!("{:?}", level_request_data), Some("rust"));
-						log_message
-							.push_codeblock(format!("{:?}", send_level_request), Some("rust"));
+						log_message.push_codeblock(
+							format!("{:?}", send_level_data.level_request),
+							Some("rust")
+						);
+						log_message.push_codeblock(
+							format!("{:?}", send_level_data.moderator_data),
+							Some("rust")
+						);
 						log_to_discord(ctx.clone(), log_message.build()).await
 					}
 				}
