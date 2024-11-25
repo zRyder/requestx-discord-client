@@ -48,7 +48,7 @@ impl Display for LevelRequestError {
 			LevelRequestError::UserOnCooldown(cooldown_error_data) => {
 				write!(
 					f,
-					"You are still on cooldown you, you can request again in **{}**.",
+					"You are still on cooldown, you can request again in **{}**.",
 					format_cooldown(
 						cooldown_error_data.last_request_time,
 						cooldown_error_data.request_cooldown as i64

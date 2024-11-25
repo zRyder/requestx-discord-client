@@ -29,7 +29,7 @@ pub async fn run_view_cooldown(ctx: &Context, command: &CommandInteraction) {
 					Some(duration_string) => {
 						invoke_ephermal(
 							format!(
-								"You are still on cooldown you, you can request again in **{}**.",
+								"You are still on cooldown, you can request again in **{}**.",
 								duration_string
 							)
 							.as_str(),
@@ -105,7 +105,7 @@ pub async fn run_view_user_cooldown(ctx: &Context, command: &CommandInteraction)
 							discord_user.request_cooldown as i64
 						) {
 							Some(duration_string) => {
-								invoke_ephermal(format!("You are still on cooldown you, you can request again in **{}**.", duration_string).as_str(), &ctx, &command).await;
+								invoke_ephermal(format!("You are still on cooldown, you can request again in **{}**.", duration_string).as_str(), &ctx, &command).await;
 							}
 							None => {
 								invoke_ephermal("You can request a level now", &ctx, &command)
