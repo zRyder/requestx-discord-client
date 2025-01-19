@@ -75,11 +75,11 @@ impl<'a> LevelReviewService<'a> {
 				let mut review_message = MessageBuilder::new();
 
 				if level_request.notify {
-					review_message.push_line("");
 					review_message.push_line(format!(
 						"{}",
 						UserId::new(level_request.discord_id).mention()
 					));
+					review_message.push_line("");
 				}
 
 				review_message.push_bold_line(format!(
