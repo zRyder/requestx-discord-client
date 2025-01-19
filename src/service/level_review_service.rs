@@ -1,6 +1,10 @@
 use log::error;
-use serenity::all::{
-	ChannelId, CommandInteraction, Context, EditMessage, Mentionable, MessageBuilder, UserId
+use serenity::{
+	all::{
+		ChannelId, Color, CommandInteraction, Context, CreateMessage, EditMessage, Mentionable,
+		MessageBuilder, UserId
+	},
+	builder::CreateEmbed
 };
 
 use crate::{
@@ -42,14 +46,18 @@ impl<'a> LevelReviewService<'a> {
 		}
 	}
 
-	pub async fn review_level(
-		&self,
+	pub async fn review_level<'b>(
+		&'b self,
 		ctx: &Context,
 		command: &CommandInteraction,
 		level_id: u64,
 		reviewer_discord_user_id: u64,
-		review_contents: &str
+		review_contents: &'b str
 	) -> Result<String, LevelReviewError> {
+		if review_contents.len() > 4000 {
+			return Err(LevelReviewError::DiscordFormattingError(0, review_contents));
+		}
+
 		let get_level_request = GetLevelRequest { level_id };
 		let level_request_service = LevelRequestService::new();
 		match level_request_service
@@ -65,10 +73,6 @@ impl<'a> LevelReviewService<'a> {
 
 				let review_discord_message_id;
 				let mut review_message = MessageBuilder::new();
-				review_message
-					.push_bold_line(format!("Review by {}", command.user.id.mention()))
-					.push_line("")
-					.push_quote_line_safe(review_contents);
 
 				if level_request.notify {
 					review_message.push_line("");
@@ -78,10 +82,36 @@ impl<'a> LevelReviewService<'a> {
 					));
 				}
 
+				review_message.push_bold_line(format!(
+					"Your level has been reviewed by {}",
+					command.user.id.mention()
+				));
+
 				let get_level_review = GetLevelReview {
 					discord_user_id: reviewer_discord_user_id,
 					level_id
 				};
+
+				let mut level_review_embed = CreateEmbed::new().color(Color::BLUE);
+
+				if let Some(level_name) = level_request.level_name {
+					level_review_embed = level_review_embed.title(format!(
+						"Level Review of \"{}\" by {} ({})",
+						level_name,
+						level_request.level_author.unwrap(),
+						level_request.level_id
+					))
+				} else {
+					level_review_embed = level_review_embed
+						.title(format!("Level Review of {}", level_request.level_id))
+				}
+
+				for (index, paragraph) in review_contents.lines().filter(|line| !line.trim().is_empty()).enumerate() {
+					if paragraph.len() > 1024 {
+						return Err(LevelReviewError::DiscordFormattingError(index, paragraph));
+					}
+					level_review_embed = level_review_embed.field("", paragraph, false);
+				}
 
 				match self.get_level_review(get_level_review).await {
 					Ok(Some(existing_level_review)) => {
@@ -90,7 +120,9 @@ impl<'a> LevelReviewService<'a> {
 								.edit_message(
 									&ctx.http,
 									existing_level_review.discord_message_id.unwrap(),
-									EditMessage::new().content(&review_message.build())
+									EditMessage::new()
+										.content(&review_message.build())
+										.embed(level_review_embed)
 								)
 								.await
 						{
@@ -102,7 +134,12 @@ impl<'a> LevelReviewService<'a> {
 					}
 					Ok(None) => {
 						match ChannelId::new(level_request.discord_message_id.unwrap())
-							.say(&ctx.http, &review_message.build())
+							.send_message(
+								&ctx.http,
+								CreateMessage::new()
+									.content(&review_message.build())
+									.embed(level_review_embed)
+							)
 							.await
 						{
 							Ok(message) => review_discord_message_id = message.id.get(),
