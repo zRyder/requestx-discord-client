@@ -12,10 +12,9 @@ use serenity::{
 use serenity::all::{CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter, User};
 use tokio::{sync::mpsc, task};
 
-use crate::{
-	config::client_config::CLIENT_CONFIG,
-	model::{level_request::LevelRequest, request_score::LevelLength}
-};
+use crate::config::client_config::CLIENT_CONFIG;
+use crate::level_request::model::level_request::LevelRequest;
+use crate::send_level::model::request_score::LevelLength;
 
 pub fn extract_command_options(
 	command: &CommandInteraction

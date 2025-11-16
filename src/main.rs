@@ -1,16 +1,20 @@
-mod commands;
 mod config;
-mod model;
 
 mod serenity;
-mod service;
+mod level_request;
+mod level_review;
+mod request_manager;
+mod requestx_api;
+mod user;
+mod send_level;
+mod reviewer;
 
 use std::process;
 
 use ::serenity::{prelude::GatewayIntents, Client};
 use log::error;
 
-use crate::config::common_config::{init_app_config, APP_CONFIG};
+use crate::config::app_config::{init_app_config, APP_CONFIG};
 
 #[tokio::main]
 async fn main() {

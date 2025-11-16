@@ -1,16 +1,19 @@
 use async_trait::async_trait;
 use log::{debug, error, info};
 use serenity::{
-	all::{GuildId, Interaction, Message, MessageType, Ready},
-	prelude::{Context, EventHandler}
+    all::{GuildId, Interaction, Message, MessageType, Ready},
+    prelude::{Context, EventHandler}
 };
 use serenity::all::{ComponentInteraction, CreateInteractionResponse};
-use crate::{
-	commands::{request_level, request_manager, review, reviewer, send_level, user},
-	config::client_config::CLIENT_CONFIG
-};
+use crate::config::client_config::CLIENT_CONFIG;
 use crate::config::discord_config::init_verify_message;
+use crate::level_request::discord::request_level;
+use crate::level_review::discord::review;
+use crate::request_manager::discord::request_manager;
+use crate::reviewer::discord::reviewer;
+use crate::send_level::discord::send_level;
 use crate::serenity::modals::get_init_gd_account_link_modal;
+use crate::user::discord::user;
 
 pub struct Handler;
 
