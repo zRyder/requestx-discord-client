@@ -2,9 +2,39 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize, Serializer};
 
+use crate::model::level_request::LevelRequest;
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct SentLevel {
+	pub level_request: LevelRequest,
+	pub moderator_data: ModeratorData
+}
+
 #[derive(Serialize, Debug, Copy, Clone)]
-pub struct Moderator {
+pub struct SendLevelRequest {
 	pub level_id: u64,
+	#[serde(flatten)]
+	pub moderator_data: ModeratorData
+}
+
+impl SendLevelRequest {
+	pub fn new(
+		level_id: u64,
+		suggested_score: SuggestedScore,
+		suggested_rating: SuggestedRating
+	) -> Self {
+		Self {
+			level_id,
+			moderator_data: ModeratorData {
+				suggested_score,
+				suggested_rating
+			}
+		}
+	}
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct ModeratorData {
 	pub suggested_score: SuggestedScore,
 	pub suggested_rating: SuggestedRating
 }

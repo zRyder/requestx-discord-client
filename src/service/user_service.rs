@@ -1,9 +1,8 @@
+use log::warn;
+
 use crate::model::{
-	requestx_api::{
-		discord_user_data::DiscordUserData, error::discord_user_error::DiscordUserError,
-		requestx_api_client::RequestXApiClient
-	},
-	user::GetDiscordUserRequest
+	discord_user::DiscordUser, error::discord_user_error::DiscordUserError,
+	requestx_api::requestx_api_client::RequestXApiClient
 };
 
 pub struct UserService<'a> {
@@ -17,32 +16,17 @@ impl<'a> UserService<'a> {
 		}
 	}
 
-	pub async fn get_discord_user(
-		&self,
-		get_discord_user_request: GetDiscordUserRequest
-	) -> Result<Option<DiscordUserData>, DiscordUserError> {
-		match self
-			.requestx_api_client
-			.get_user(get_discord_user_request)
+	pub async fn get_discord_user(&self, discord_id: u64) -> Result<DiscordUser, DiscordUserError> {
+		self.requestx_api_client
+			.get_user(discord_id)
 			.await
-		{
-			Ok(response) => Ok(response),
-			Err(error) => Err(error)
-		}
-	}
-
-	pub async fn get_discord_user_admin(
-		&self,
-		get_discord_user_request: GetDiscordUserRequest
-	) -> Result<DiscordUserData, DiscordUserError> {
-		match self
-			.requestx_api_client
-			.get_user(get_discord_user_request)
-			.await
-		{
-			Ok(Some(response)) => Ok(response),
-			Ok(None) => Err(DiscordUserError::UserDoesNotExist),
-			Err(error) => Err(error)
-		}
+			.map_err(DiscordUserError::from)?
+			.map_or_else(
+				|| {
+					warn!("Discord user with id {} does not exist", discord_id);
+					Err(DiscordUserError::UserDoesNotExist)
+				},
+				|discord_user_data| Ok(DiscordUser::from(discord_user_data))
+			)
 	}
 }

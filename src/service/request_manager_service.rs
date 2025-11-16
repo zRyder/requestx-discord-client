@@ -1,8 +1,6 @@
 use crate::model::{
-	request_manager::UpdateRequestManager,
-	requestx_api::{
-		error::level_request_error::LevelRequestError, requestx_api_client::RequestXApiClient
-	}
+	error::level_request_error::LevelRequestError, request_manager::UpdateRequestManager,
+	requestx_api::requestx_api_client::RequestXApiClient
 };
 
 pub struct RequestManagerService<'a> {
@@ -22,7 +20,7 @@ impl<'a> RequestManagerService<'a> {
 	) -> Result<(), LevelRequestError> {
 		return self
 			.requestx_api_client
-			.make_update_request_manager_request(update_request_manager)
+			.update_request_manager(update_request_manager)
 			.await;
 	}
 }

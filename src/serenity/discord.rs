@@ -1,39 +1,85 @@
+use std::{collections::HashMap, error::Error, fmt::Debug};
+use chrono::Utc;
 use log::error;
 use serenity::{
 	all::{
-		ChannelId, CommandInteraction, Context, CreateInteractionResponse,
+		ChannelId, CommandDataOptionValue, CommandInteraction, Context, CreateInteractionResponse,
 		CreateInteractionResponseMessage, CreateMessage, CreateThread, EditMessage, Message,
 		MessageBuilder
 	},
-	Error
+	Error as SerenityError
 };
+use serenity::all::{CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter, User};
 use tokio::{sync::mpsc, task};
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
-	model::{request_score::LevelLength, requestx_api::level_request_data::LevelRequestData}
+	model::{level_request::LevelRequest, request_score::LevelLength}
 };
+
+pub fn extract_command_options(
+	command: &CommandInteraction
+) -> HashMap<&String, &CommandDataOptionValue> {
+	command
+		.data
+		.options
+		.iter()
+		.map(|data| (&data.name, &data.value))
+		.collect::<HashMap<&String, &CommandDataOptionValue>>()
+}
+
+pub async fn log_action_to_discord(
+	user: &User,
+	operation_message: &str,
+	extra_log_ctx: Option<&(dyn Debug + Send + Sync)>,
+	ctx: &Context
+) {
+	let mut log_message = MessageBuilder::new();
+	log_message.push_bold(format!("{} ", user.name));
+	log_message.push_line(format!("({}) has {}", user.id, operation_message));
+	log_message.push_codeblock(format!("{:?}", &extra_log_ctx), Some("rust"));
+
+	log_to_discord(ctx.clone(), log_message.build()).await
+}
+
+pub async fn log_error_to_discord(
+	user: &User,
+	operation_message: &str,
+	error: &(dyn Error + Send + Sync),
+	extra_log_ctx: Option<&(dyn Debug + Send + Sync)>,
+	ctx: &Context
+) {
+	let mut log_message = MessageBuilder::new();
+	log_message.push_bold(format!("{} ", user.name));
+	log_message.push_line(format!(
+		"({}) cause an error when {}",
+		user.id, operation_message
+	));
+	log_message.push_codeblock(format!("{:?}", error), Some("rust"));
+	if let Some(extra_log) = extra_log_ctx {
+		log_message.push_codeblock(format!("{:?}", extra_log), Some("rust"));
+	};
+
+	log_to_discord(ctx.clone(), log_message.build()).await
+}
 
 pub async fn create_thread(
 	ctx: &Context,
 	command: &CommandInteraction,
 	message_id: u64,
-	level_request_data: &LevelRequestData
-) -> Result<u64, Error> {
-	let create_thread_result = if let Some(level_name) = &level_request_data.level_name {
+	level_request: &LevelRequest
+) -> Result<u64, SerenityError> {
+	let create_thread_result = if let Some(level_name) = &level_request.level_name {
 		ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 			.create_thread_from_message(
 				&ctx.http,
 				message_id,
-				CreateThread::new(format!(
-					"\"{}\" ({})",
-					level_name, level_request_data.level_id
-				))
-				.audit_log_reason(&*format!(
-					"Created via {} command by: {} {}",
-					command.data.name, command.user.name, command.user.id,
-				))
-				.invitable(false)
+				CreateThread::new(format!("\"{}\" ({})", level_name, level_request.level_id))
+					.audit_log_reason(&*format!(
+						"Created via {} command by: {} {}",
+						command.data.name, command.user.name, command.user.id,
+					))
+					.invitable(false)
 			)
 			.await
 	} else {
@@ -41,7 +87,7 @@ pub async fn create_thread(
 			.create_thread_from_message(
 				&ctx.http,
 				message_id,
-				CreateThread::new(format!("{}", level_request_data.level_id))
+				CreateThread::new(format!("{}", level_request.level_id))
 					.audit_log_reason(&*format!(
 						"Created via {} command by: {} {}",
 						command.data.name, command.user.name, command.user.id,
@@ -51,26 +97,22 @@ pub async fn create_thread(
 			.await
 	};
 
-	match create_thread_result {
-		Ok(thread_channel_id) => Ok(thread_channel_id.id.get()),
-		Err(error) => Err(error)
-	}
+	create_thread_result.map(|thread_channel| thread_channel.id.get())
 }
 
 pub async fn send_level_request_message_to_discord(
 	ctx: &Context,
-	level_request_data: &LevelRequestData
+	level_request: &LevelRequest
 ) -> serenity::Result<Message> {
 	let mut request_message = MessageBuilder::new();
-	if let (Some(level_name), Some(level_creator_name)) = (
-		&level_request_data.level_name,
-		&level_request_data.level_author
-	) {
+	if let (Some(level_name), Some(level_creator_name)) =
+		(&level_request.level_name, &level_request.level_author)
+	{
 		request_message.push_line(format!("\"{}\" by {}", level_name, level_creator_name));
 	}
-	request_message.push_line(format!("{}", &level_request_data.level_id));
-	if let Some(level_length) = level_request_data.level_length {
-		let level_rating_str = level_request_data.request_score.to_string();
+	request_message.push_line(format!("{}", &level_request.level_id));
+	if let Some(level_length) = level_request.level_length {
+		let level_rating_str = level_request.request_rating.to_string();
 		let slice: Vec<&str> = level_rating_str.split(&[' ', '/'][..]).collect();
 		let output_str;
 		match level_length {
@@ -93,14 +135,14 @@ pub async fn send_level_request_message_to_discord(
 		}
 		request_message.push_line(format!("Requested {}", output_str));
 	} else {
-		request_message.push_line(format!("Requested {}", level_request_data.request_score));
+		request_message.push_line(format!("Requested {}", level_request.request_rating));
 	}
-	if level_request_data.has_requested_feedback {
+	if level_request.has_requested_feedback {
 		request_message.push_line("Feedback has been requested!");
 	}
-	request_message.push_line(format!("{}", &level_request_data.youtube_video_link));
+	request_message.push_line(format!("{}", &level_request.youtube_video_link));
 
-	match &level_request_data.discord_message_id {
+	match &level_request.discord_message_id {
 		Some(discord_message_id) => {
 			ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 				.edit_message(
@@ -121,7 +163,7 @@ pub async fn send_level_request_message_to_discord(
 	}
 }
 
-pub async fn invoke_ephermal(content: &str, ctx: &Context, command: &CommandInteraction) {
+pub async fn invoke_ephemeral(content: &str, ctx: &Context, command: &CommandInteraction) {
 	let data = CreateInteractionResponseMessage::new()
 		.ephemeral(true)
 		.content(content);
@@ -150,4 +192,44 @@ pub async fn log_to_discord(ctx: Context, log_text: String) {
 	task::spawn(discord_log(rx));
 	tx.send((log_text, ctx)).await.unwrap();
 	drop(tx);
+}
+
+pub fn get_init_gd_account_link_embed(bot_user: &User) -> CreateEmbed {
+	let mut init_message_embed = CreateEmbed::new();
+
+	init_message_embed = init_message_embed.footer(CreateEmbedFooter::new("init"));
+	init_message_embed = init_message_embed.author(CreateEmbedAuthor::from(bot_user.clone()));
+	init_message_embed = init_message_embed.timestamp(Utc::now());
+	init_message_embed = init_message_embed.field(
+		"",
+		"In order to make level request while Ryder is taking user created \
+                    level requests only, you must link your GD account. In order to link your GD account \
+                    follow the instructions below:\n\
+                    - Press the \"Link GD Account\" button below\n\
+                    - Enter your GD username when prompted and press submit\n\
+                    - Copy the token that will be sent to your DMs as well as in this channel\n\
+                    - Make a profile post containing that token\n\
+                    - Press the \"Verify GD Account Link\" button in the below embed.\n\
+                    \n\
+                    If you need assistance, send a DM to Ryder.",
+		false,
+	);
+
+	init_message_embed
+}
+
+pub fn get_verify_gd_account_link_embed(bot_user: &User) -> CreateEmbed {
+	let mut init_message_embed = CreateEmbed::new();
+
+	init_message_embed = init_message_embed.footer(CreateEmbedFooter::new("verify"));
+	init_message_embed = init_message_embed.author(CreateEmbedAuthor::from(bot_user.clone()));
+	init_message_embed = init_message_embed.timestamp(Utc::now());
+	init_message_embed = init_message_embed.field(
+		"",
+		"Once you have posted the token from the above step \
+		click the \"Verify GD Account Link\" button below.",
+		false,
+	);
+
+	init_message_embed
 }

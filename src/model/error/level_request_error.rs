@@ -6,7 +6,7 @@ use std::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::model::requestx_api::error::format_cooldown;
+use crate::model::error::format_cooldown;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -19,13 +19,13 @@ pub enum LevelRequestError {
 	RequestXApiError(ErrorMessage)
 }
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize, Default)]
 pub struct UserOnCooldownError {
 	pub last_request_time: DateTime<Utc>,
 	pub request_cooldown: u64
 }
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize, Default)]
 pub struct ErrorMessage {
 	pub message: String
 }

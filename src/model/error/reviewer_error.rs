@@ -1,12 +1,5 @@
+use std::error::Error;
 use std::fmt::{Display, Formatter};
-
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ReviewerData {
-	pub reviewer_discord_id: u64,
-	pub is_active: bool
-}
 
 #[derive(Debug, PartialEq)]
 pub enum ReviewerError {
@@ -30,3 +23,5 @@ impl Display for ReviewerError {
 		}
 	}
 }
+
+impl Error for ReviewerError {}

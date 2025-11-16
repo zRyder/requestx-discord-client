@@ -35,17 +35,14 @@ fn read_app_config() -> Result<AppConfig, ConfigError> {
 		.render_template(&template_string, &env_vars)
 		.expect("Unable to render template");
 	settings = settings.add_source(File::from_str(rendered.as_str(), FileFormat::Toml));
-	settings.build().unwrap().try_deserialize::<AppConfig>()
+	settings.build()?.try_deserialize::<AppConfig>()
 }
 
 lazy_static! {
 	pub static ref APP_CONFIG: AppConfig = {
-		match read_app_config() {
-			Ok(common_config) => common_config,
-			Err(err) => {
-				eprintln!("{}", err);
-				process::exit(1)
-			}
-		}
+		read_app_config().unwrap_or_else(|err| {
+			eprintln!("{}", err);
+			process::exit(1)
+		})
 	};
 }

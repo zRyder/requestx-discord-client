@@ -1,29 +1,20 @@
 use log::error;
-use serenity::{
-	all::{
-		ChannelId, Color, CommandInteraction, Context, CreateMessage, EditMessage, Mentionable,
-		MessageBuilder, UserId
-	},
-	builder::CreateEmbed
-};
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
 	model::{
-		level_request::{GetLevelRequest, GetLevelReview},
-		level_review::LevelReview,
-		requestx_api::{
-			error::{level_request_error::LevelRequestError, level_review_error::LevelReviewError},
-			level_review_data::LevelReviewData,
-			requestx_api_client::RequestXApiClient
-		}
-	},
-	service::level_request_service::LevelRequestService
+		error::level_review_error::LevelReviewError,
+		level_request::LevelRequest,
+		level_review::{LevelReview, UpdateLevelReviewMessageId},
+		requestx_api::requestx_api_client::RequestXApiClient
+	}
 };
 
 pub struct LevelReviewService<'a> {
 	requestx_api_client: RequestXApiClient<'a>
 }
+
+const MAX_REVIEW_CHARACTERS: usize = 4000;
 
 impl<'a> LevelReviewService<'a> {
 	pub fn new() -> Self {
@@ -34,170 +25,86 @@ impl<'a> LevelReviewService<'a> {
 
 	pub async fn get_level_review(
 		&self,
-		get_level_review: GetLevelReview
-	) -> Result<Option<LevelReviewData>, LevelReviewError> {
-		match self
-			.requestx_api_client
-			.get_level_review(get_level_review)
+		reviewer_discord_id: u64,
+		level_id: u64
+	) -> Result<Option<LevelReview>, LevelReviewError> {
+		self.requestx_api_client
+			.get_level_review(reviewer_discord_id, level_id)
 			.await
-		{
-			Ok(resp) => Ok(resp),
-			Err(error) => Err(error)
-		}
 	}
 
-	pub async fn review_level<'b>(
-		&'b self,
-		ctx: &Context,
-		command: &CommandInteraction,
-		level_id: u64,
-		reviewer_discord_user_id: u64,
-		review_contents: &'b str
-	) -> Result<String, LevelReviewError> {
-		if review_contents.len() > 4000 {
-			return Err(LevelReviewError::DiscordFormattingError(0, review_contents));
-		}
-
-		let get_level_request = GetLevelRequest { level_id };
-		let level_request_service = LevelRequestService::new();
-		match level_request_service
-			.get_level_request(get_level_request)
-			.await
-		{
-			Ok(Some(level_request)) => {
-				if !level_request.has_requested_feedback
-					&& reviewer_discord_user_id.ne(&CLIENT_CONFIG.discord_bot_admin_id)
-				{
-					return Ok("The user has not requested feedback for this level".to_string());
-				}
-
-				let review_discord_message_id;
-				let mut review_message = MessageBuilder::new();
-
-				if level_request.notify {
-					review_message.push_line(format!(
-						"{}",
-						UserId::new(level_request.discord_id).mention()
-					));
-					review_message.push_line("");
-				}
-
-				review_message.push_bold_line(format!(
-					"Your level has been reviewed by {}",
-					command.user.id.mention()
-				));
-
-				let get_level_review = GetLevelReview {
-					discord_user_id: reviewer_discord_user_id,
-					level_id
-				};
-
-				let mut level_review_embed = CreateEmbed::new().color(Color::BLUE);
-
-				if let Some(level_name) = level_request.level_name {
-					level_review_embed = level_review_embed.title(format!(
-						"Level Review of \"{}\" by {} ({})",
-						level_name,
-						level_request.level_author.unwrap(),
-						level_request.level_id
-					))
-				} else {
-					level_review_embed = level_review_embed
-						.title(format!("Level Review of {}", level_request.level_id))
-				}
-
-				for (index, paragraph) in review_contents.lines().filter(|line| !line.trim().is_empty()).enumerate() {
-					if paragraph.len() > 1024 {
-						return Err(LevelReviewError::DiscordFormattingError(index, paragraph));
-					}
-					level_review_embed = level_review_embed.field("", paragraph, false);
-				}
-
-				match self.get_level_review(get_level_review).await {
-					Ok(Some(existing_level_review)) => {
-						if let Err(edit_message_error) =
-							ChannelId::new(level_request.discord_message_id.unwrap())
-								.edit_message(
-									&ctx.http,
-									existing_level_review.discord_message_id.unwrap(),
-									EditMessage::new()
-										.content(&review_message.build())
-										.embed(level_review_embed)
-								)
-								.await
-						{
-							error!("Unable to edit review message: {}", edit_message_error);
-							return Err(LevelReviewError::RequestError);
-						};
-						review_discord_message_id =
-							existing_level_review.discord_message_id.unwrap();
-					}
-					Ok(None) => {
-						match ChannelId::new(level_request.discord_message_id.unwrap())
-							.send_message(
-								&ctx.http,
-								CreateMessage::new()
-									.content(&review_message.build())
-									.embed(level_review_embed)
-							)
-							.await
-						{
-							Ok(message) => review_discord_message_id = message.id.get(),
-							Err(send_level_review_error) => {
-								error!(
-									"Unable to send level review to Discord: {}",
-									send_level_review_error
-								);
-								return Err(LevelReviewError::RequestError);
-							}
-						};
-					}
-					Err(level_review_error) => {
-						error!("Error getting level review: {}", level_review_error);
-						return Err(level_review_error);
-					}
-				}
-
-				let level_review = LevelReview {
-					discord_user_id: reviewer_discord_user_id,
-					discord_message_id: review_discord_message_id,
-					level_id,
-					review_contents: review_contents.to_string()
-				};
-				if let Err(save_level_review_error) = self.post_level_review(&level_review).await {
-					Err(save_level_review_error)
-				} else {
-					Ok("Review submitted".to_string())
-				}
-			}
-			Ok(None) => {
-				error!("Level request with ID {} does not exist", level_id);
-				Err(LevelReviewError::LevelRequestDoesNotExists)
-			}
-			Err(error) => match error {
-				LevelRequestError::RequestError => Err(LevelReviewError::RequestError),
-				LevelRequestError::SerializeError(_field) => Err(LevelReviewError::RequestError),
-				LevelRequestError::RequestXApiError(error_message) => {
-					Err(LevelReviewError::RequestXApiError(error_message))
-				}
-				_ => {
-					unreachable!()
-				}
-			}
-		}
-	}
-
-	async fn post_level_review(
+	pub async fn review_level(
 		&self,
 		level_review: &LevelReview
-	) -> Result<LevelReviewData, LevelReviewError> {
-		match self
+	) -> Result<LevelRequest, LevelReviewError> {
+		Self::validate_level_review(&level_review.review_contents)?;
+
+		let level_request = self
 			.requestx_api_client
-			.make_requestx_api_level_review_request(level_review)
+			.get_level_request(level_review.level_id)
+			.await
+			.map_err(|get_level_request_error| {
+				error!("Error getting level request: {:?}", get_level_request_error);
+				LevelReviewError::from(get_level_request_error)
+			})?
+			.map_or_else(
+				|| {
+					error!("Level request does not exist");
+					Err(LevelReviewError::LevelRequestDoesNotExists)
+				},
+				|level_request_data| Ok(LevelRequest::from(level_request_data))
+			)?;
+
+		if !level_request.has_requested_feedback
+			&& level_review
+				.discord_user_id
+				.ne(&CLIENT_CONFIG.discord_bot_admin_id)
+		{
+			return Err(LevelReviewError::UserHasNotRequestedFeedback);
+		}
+
+		if let Err(save_level_review_error) = self
+			.requestx_api_client
+			.create_level_review(&level_review)
 			.await
 		{
-			Ok(resp) => Ok(resp),
-			Err(error) => Err(error)
+			error!("Error saving level review: {:?}", save_level_review_error);
+			return Err(save_level_review_error);
 		}
+
+		Ok(level_request)
+	}
+
+	pub async fn update_level_review_message_id(
+		&self,
+		update_level_review_message: UpdateLevelReviewMessageId
+	) -> Result<(), LevelReviewError> {
+		self.requestx_api_client
+			.update_level_review_message_id(update_level_review_message)
+			.await
+	}
+
+	fn validate_level_review(review_contents: &str) -> Result<(), LevelReviewError> {
+		if review_contents.len() > MAX_REVIEW_CHARACTERS {
+			return Err(LevelReviewError::DiscordFormattingError(
+				0,
+				review_contents.to_string()
+			));
+		}
+
+		for (index, paragraph) in review_contents
+			.lines()
+			.filter(|line| !line.trim().is_empty())
+			.enumerate()
+		{
+			if paragraph.len() > 1024 {
+				return Err(LevelReviewError::DiscordFormattingError(
+					index,
+					paragraph.to_string()
+				));
+			}
+		}
+
+		Ok(())
 	}
 }

@@ -3,7 +3,7 @@ use std::{
 	fmt::{Display, Formatter}
 };
 
-use crate::model::requestx_api::error::level_request_error::ErrorMessage;
+use crate::model::error::level_request_error::ErrorMessage;
 
 #[derive(Debug, PartialEq)]
 pub enum DiscordUserError {

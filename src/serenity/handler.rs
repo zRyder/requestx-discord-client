@@ -4,11 +4,13 @@ use serenity::{
 	all::{GuildId, Interaction, Message, MessageType, Ready},
 	prelude::{Context, EventHandler}
 };
-
+use serenity::all::{ComponentInteraction, CreateInteractionResponse};
 use crate::{
 	commands::{request_level, request_manager, review, reviewer, send_level, user},
 	config::client_config::CLIENT_CONFIG
 };
+use crate::config::discord_config::init_verify_message;
+use crate::serenity::modals::get_init_gd_account_link_modal;
 
 pub struct Handler;
 
@@ -39,8 +41,8 @@ impl EventHandler for Handler {
 
 	async fn ready(&self, ctx: Context, ready: Ready) {
 		info!("{} is connected!", ready.user.name);
-
 		let guild_id = GuildId::new(CLIENT_CONFIG.discord_guild_id);
+		init_verify_message(&ctx, &ready.user).await;
 
 		guild_id
 			.set_commands(
@@ -81,6 +83,54 @@ impl EventHandler for Handler {
 				"request-manager" => request_manager::run_request_manager(&ctx, &command).await,
 				_ => println!("Unreachable")
 			};
+		} else if let Interaction::Component(component_interaction) = interaction {
+			debug!("Received component interaction: {component_interaction:#?}");
+			let component_interaction_id = &component_interaction.data.custom_id;
+			let component_interaction_type = component_interaction_id
+				.split("-")
+				.collect::<Vec<&str>>()
+				.last()
+				.unwrap_or(&"")
+				.to_owned();
+
+			if component_interaction_type == "button" {
+				handle_button_interactions(
+					&ctx,
+					&component_interaction,
+					&component_interaction_id
+				).await
+			} else {
+
+			}
 		}
 	}
+}
+
+async fn handle_button_interactions(
+	ctx: &Context,
+	button_interaction: &ComponentInteraction,
+	button_interaction_id: &str,
+) {
+	match button_interaction_id {
+		"init-gd-account-link-button" => {
+			if let Err(create_modal_error) = button_interaction.create_response(
+				&ctx.http,
+				CreateInteractionResponse::Modal(get_init_gd_account_link_modal()),
+			).await {
+				error!("Unable to create init-gd account link modal: {}", create_modal_error);
+			}
+		}
+		_ => println!("Unreachable")
+	};
+}
+
+async fn handle_modal_interactions(
+	ctx: &Context,
+	modal_interaction: &ComponentInteraction,
+	modal_interaction_id: &str,
+) {
+	match modal_interaction_id {
+		"init-gd-account-link-modal" => {}
+		_ => println!("Unreachable")
+	};
 }

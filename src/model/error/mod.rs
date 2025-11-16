@@ -4,6 +4,8 @@ pub mod auth_error;
 pub mod discord_user_error;
 pub mod level_request_error;
 pub mod level_review_error;
+pub mod moderator_error;
+pub mod reviewer_error;
 
 pub fn format_cooldown(cooldown_timestamp: DateTime<Utc>, request_cooldown: i64) -> Option<String> {
 	let duration = (cooldown_timestamp + Duration::minutes(request_cooldown)) - Utc::now();

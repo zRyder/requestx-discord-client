@@ -14,7 +14,7 @@ use crate::{
 		auth_config::AUTH_CONFIG, client_config::CLIENT_CONFIG, constants::CONTENT_LENGTH,
 		requestx_api_config::REQUESTX_API_CONFIG
 	},
-	model::requestx_api::error::auth_error::AuthError
+	model::error::auth_error::AuthError
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,9 +58,9 @@ impl JWT {
 			&DecodingKey::from_secret(&AUTH_CONFIG.secret_token.as_ref()),
 			&Validation::default()
 		) {
-			return token_data.claims.exp
+			token_data.claims.exp
 				< (Utc::now() - Duration::minutes(AUTH_CONFIG.token_buffer as i64)).timestamp()
-					as usize;
+					as usize
 		} else {
 			true
 		}

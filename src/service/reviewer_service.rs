@@ -1,13 +1,8 @@
-use log::error;
-use serenity::all::{Context, GuildId, Member, User};
-
-use crate::{
-	config::client_config::CLIENT_CONFIG,
-	model::{
-		requestx_api::{requestx_api_client::RequestXApiClient, reviewer_data::ReviewerError},
-		reviewer::{AddReviewerRequest, RemoveReviewerRequest}
-	}
+use crate::model::{
+    requestx_api::requestx_api_client::RequestXApiClient,
+    reviewer::CreateReviewerRequest
 };
+use crate::model::error::reviewer_error::ReviewerError;
 
 pub struct ReviewerService<'a> {
 	requestx_api_client: RequestXApiClient<'a>
@@ -20,69 +15,17 @@ impl<'a> ReviewerService<'a> {
 		}
 	}
 
-	pub async fn create_reviewer(
-		&self,
-		ctx: &Context,
-		discord_user: &User
-	) -> Result<(), ReviewerError> {
-		let add_reviewer_request = AddReviewerRequest {
-			reviewer_discord_id: discord_user.id.get()
+	pub async fn create_reviewer(&self, discord_id: u64) -> Result<(), ReviewerError> {
+		let create_reviewer_request = CreateReviewerRequest {
+			reviewer_discord_id: discord_id
 		};
 
-		match self
-			.requestx_api_client
-			.make_add_reviewer_request(add_reviewer_request)
+		self.requestx_api_client
+			.create_reviewer(create_reviewer_request)
 			.await
-		{
-			Ok(()) => {
-				let mut member = Member::default();
-				member.user = discord_user.clone();
-				member.guild_id = GuildId::from(CLIENT_CONFIG.discord_guild_id);
-				match member
-					.add_role(&ctx.http, CLIENT_CONFIG.discord_reviewer_role_id)
-					.await
-				{
-					Ok(()) => Ok(()),
-					Err(error) => {
-						error!("Unable to add reviewer: {}", error);
-						Err(ReviewerError::RequestError)
-					}
-				}
-			}
-			Err(error) => Err(error)
-		}
 	}
 
-	pub async fn remove_reviewer(
-		&self,
-		ctx: &Context,
-		discord_user: &User
-	) -> Result<(), ReviewerError> {
-		let remove_reviewer_request = RemoveReviewerRequest {
-			reviewer_discord_id: discord_user.id.get()
-		};
-
-		match self
-			.requestx_api_client
-			.make_remove_reviewer_request(remove_reviewer_request)
-			.await
-		{
-			Ok(()) => {
-				let mut member = Member::default();
-				member.user = discord_user.clone();
-				member.guild_id = GuildId::from(CLIENT_CONFIG.discord_guild_id);
-				match member
-					.remove_role(&ctx.http, CLIENT_CONFIG.discord_reviewer_role_id)
-					.await
-				{
-					Ok(()) => Ok(()),
-					Err(error) => {
-						error!("Unable to remove reviewer: {}", error);
-						Err(ReviewerError::RequestError)
-					}
-				}
-			}
-			Err(error) => Err(error)
-		}
+	pub async fn remove_reviewer(&self, discord_id: u64) -> Result<(), ReviewerError> {
+		self.requestx_api_client.remove_reviewer(discord_id).await
 	}
 }

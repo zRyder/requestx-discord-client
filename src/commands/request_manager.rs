@@ -4,7 +4,7 @@ use serenity::{
 };
 
 use crate::{
-	model::request_manager::UpdateRequestManager, serenity::discord::invoke_ephermal,
+	model::request_manager::UpdateRequestManager, serenity::discord::invoke_ephemeral,
 	service::request_manager_service::RequestManagerService
 };
 
@@ -127,10 +127,10 @@ pub async fn run_request_manager(ctx: &Context, command: &CommandInteraction) {
 					}
 				))
 			}
-			invoke_ephermal(&format!("{}.", string_content.join(".\n")), &ctx, &command).await;
+			invoke_ephemeral(&format!("{}.", string_content.join(".\n")), &ctx, &command).await;
 		}
 		Err(error) => {
-			invoke_ephermal(&error.to_string(), &ctx, &command).await;
+			invoke_ephemeral(&error.to_string(), &ctx, &command).await;
 		}
 	}
 }

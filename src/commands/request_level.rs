@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use log::error;
 use serenity::{
-	all::{ChannelId, CommandInteraction, CommandOptionType, MessageBuilder},
+	all::{ChannelId, CommandInteraction, CommandOptionType},
 	builder::{CreateCommand, CreateCommandOption},
 	prelude::Context
 };
@@ -10,13 +10,12 @@ use serenity::{
 use crate::{
 	config::client_config::CLIENT_CONFIG,
 	model::{
-		level_request::{
-			GetLevelRequest, LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId
-		},
+		level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
 		request_score::RequestRating
 	},
 	serenity::discord::{
-		create_thread, invoke_ephermal, log_to_discord, send_level_request_message_to_discord
+		create_thread, extract_command_options, invoke_ephemeral, log_action_to_discord,
+		log_error_to_discord, send_level_request_message_to_discord
 	},
 	service::level_request_service::LevelRequestService
 };
@@ -77,80 +76,71 @@ pub fn register_request_level() -> CreateCommand {
 }
 
 pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
-	let level_request = LevelRequest {
-		discord_user_id: u64::from(command.user.id),
-		level_id: command
-			.data
-			.options
-			.get(0)
+	let command_map = extract_command_options(&command);
+	let level_request = LevelRequest::new(
+		command_map
+			.get(&"level-id".to_string())
 			.unwrap()
-			.value
 			.as_i64()
 			.unwrap()
 			.unsigned_abs(),
-		request_score: RequestRating::from_str(
-			command.data.options.get(1).unwrap().value.as_str().unwrap()
+		command.user.id.get(),
+		RequestRating::from_str(
+			command_map
+				.get(&"request-rating".to_string())
+				.unwrap()
+				.as_str()
+				.unwrap()
 		)
 		.unwrap(),
-		youtube_video_link: command
-			.data
-			.options
-			.get(2)
+		command_map
+			.get(&"video-link".to_string())
 			.unwrap()
-			.value
 			.as_str()
 			.unwrap()
 			.to_string(),
-		has_requested_feedback: command
-			.data
-			.options
-			.get(3)
+		command_map
+			.get(&"request-feedback".to_string())
 			.unwrap()
-			.value
 			.as_bool()
 			.unwrap(),
-		notify: command
-			.data
-			.options
-			.get(4)
+		command_map
+			.get(&"notify".to_string())
 			.unwrap()
-			.value
 			.as_bool()
-			.unwrap()
-	};
+			.unwrap(),
+		None,
+		None,
+		None,
+		None
+	);
 
 	let service = LevelRequestService::new();
 	let content: &str;
 
-	match service.request_level(level_request).await {
-		Ok(level_request_data) => {
-			content = "Level has been requested successfully!";
-			invoke_ephermal(&content, &ctx, &command).await;
-
-			match send_level_request_message_to_discord(&ctx, &level_request_data).await {
+	match service.request_level(&level_request).await {
+		Ok(requested_level) => {
+			match send_level_request_message_to_discord(&ctx, &requested_level).await {
 				Ok(message_data) => {
 					if let Err(create_thread_error) =
-						create_thread(&ctx, &command, message_data.id.get(), &level_request_data)
-							.await
+						create_thread(&ctx, &command, message_data.id.get(), &requested_level).await
 					{
 						error!("Error creating thread: {}", create_thread_error);
-						let mut log_message = MessageBuilder::new();
-						log_message.push_bold(format!("{} ", command.user.name));
-						log_message.push_line(format!(
-							"({}) requested a level {} but the thread could not be created",
-							command.user.id, level_request_data.level_id
-						));
-						log_message
-							.push_codeblock(format!("{:?}", &level_request_data), Some("rust"));
-						log_message
-							.push_codeblock(format!("{:?}", create_thread_error), Some("rust"));
-						log_to_discord(ctx.clone(), log_message.build()).await
+						log_error_to_discord(
+							&command.user,
+							"creating thread for requested level",
+							&create_thread_error,
+							Some(&requested_level),
+							&ctx
+						)
+						.await;
 					}
+
 					let update_request_message_id = UpdateLevelRequestMessageId {
-						level_id: level_request_data.level_id,
+						level_id: requested_level.level_id,
 						discord_message_id: message_data.id.get()
 					};
-					if let Err(error) = &service
+					if let Err(error) = service
 						.update_request_message_id(update_request_message_id)
 						.await
 					{
@@ -161,27 +151,27 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 					error!("Error sending message: {send_message_error}");
 				}
 			}
-			{
-				let mut log_message = MessageBuilder::new();
-				log_message.push_bold(format!("{} ", command.user.name));
-				log_message.push_line(format!("({}) has requested a level", command.user.id));
-				log_message.push_codeblock(format!("{:?}", &level_request_data), Some("rust"));
-				log_to_discord(ctx.clone(), log_message.build()).await
-			}
-		}
-		Err(error) => {
-			invoke_ephermal(&error.to_string(), &ctx, &command).await;
+			content = "Level has been requested successfully!";
+			invoke_ephemeral(&content, &ctx, &command).await;
 
-			{
-				let mut log_message = MessageBuilder::new();
-				log_message.push_bold(format!("{} ", command.user.name));
-				log_message.push_line(format!(
-					"({}) caused an error when requesting a level",
-					command.user.id
-				));
-				log_message.push_codeblock(format!("{:?}", error), Some("rust"));
-				log_to_discord(ctx.clone(), log_message.build()).await
-			}
+			log_action_to_discord(
+				&command.user,
+				"requested a level",
+				Some(&requested_level),
+				&ctx
+			)
+			.await;
+		}
+		Err(request_level_error) => {
+			invoke_ephemeral(&request_level_error.to_string(), &ctx, &command).await;
+			log_error_to_discord(
+				&command.user,
+				"requesting a level",
+				&request_level_error,
+				None,
+				&ctx
+			)
+			.await;
 		}
 	}
 }
@@ -232,73 +222,37 @@ pub fn register_edit_level_request() -> CreateCommand {
 }
 
 pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction) {
-	let update_level_request = UpdateLevelRequest {
-		discord_user_id: command.user.id.get(),
-		level_id: command
-			.data
-			.options
-			.get(0)
+	let content: String;
+	let command_map = extract_command_options(&command);
+	let update_level_request = UpdateLevelRequest::new(
+		command.user.id.get(),
+		command_map
+			.get(&"level-id".to_string())
 			.unwrap()
-			.value
 			.as_i64()
 			.unwrap()
 			.unsigned_abs(),
-		request_score: if let Some(request_rating_command_option) = command
-			.data
-			.options
-			.iter()
-			.find(|command_option| command_option.name.eq("request-rating"))
-		{
-			Some(
-				RequestRating::from_str(request_rating_command_option.value.as_str().unwrap())
-					.unwrap()
-			)
+		if let Some(request_rating) = command_map.get(&"request-rating".to_string()) {
+			Some(RequestRating::from_str(request_rating.as_str().unwrap()).unwrap())
 		} else {
 			None
 		},
-		youtube_video_link: if let Some(video_link_command_option) = command
-			.data
-			.options
-			.iter()
-			.find(|command_option| command_option.name.eq("video-link"))
-		{
-			Some(
-				video_link_command_option
-					.value
-					.as_str()
-					.unwrap()
-					.to_string()
-			)
+		if let Some(video_link) = command_map.get(&"video_link".to_string()) {
+			Some(video_link.as_str().unwrap().to_string())
 		} else {
 			None
 		},
-		has_requested_feedback: if let Some(has_requested_feedback_command_option) = command
-			.data
-			.options
-			.iter()
-			.find(|command_option| command_option.name.eq("request-feedback"))
-		{
-			Some(
-				has_requested_feedback_command_option
-					.value
-					.as_bool()
-					.unwrap()
-			)
+		if let Some(has_requested_feedback) = command_map.get(&"request-feedback".to_string()) {
+			Some(has_requested_feedback.as_bool().unwrap())
 		} else {
 			None
 		},
-		notify: if let Some(notify_command_option) = command
-			.data
-			.options
-			.iter()
-			.find(|command_option| command_option.name.eq("notify"))
-		{
-			Some(notify_command_option.value.as_bool().unwrap())
+		if let Some(notify) = command_map.get(&"notify".to_string()) {
+			Some(notify.as_bool().unwrap())
 		} else {
 			None
 		}
-	};
-
+	);
 	let service = LevelRequestService::new();
 
 	match service.update_level_request(update_level_request).await {
@@ -310,35 +264,28 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 					"Unable to edit level request message: {}",
 					edit_message_error
 				);
-				return;
-			}
 
-			{
-				let mut log_message = MessageBuilder::new();
-				log_message.push_bold(format!("{} ", command.user.name));
-				log_message.push_line(format!("({}) has edited a level request", command.user.id));
-				log_message.push_codeblock(format!("{:?}", &level_request_data), Some("rust"));
-				log_to_discord(ctx.clone(), log_message.build()).await
-			}
+				content = "Unable to edit level request message.".to_string();
+			} else {
+				log_action_to_discord(
+					&command.user,
+					"edited a level request",
+					Some(&level_request_data),
+					&ctx
+				)
+				.await;
 
-			let content = "Level request has been edited successfully!".to_string();
-			invoke_ephermal(&content, &ctx, &command).await;
+				content = "Level request has been edited successfully!".to_string();
+			}
 		}
 		Err(error) => {
-			invoke_ephermal(&error.to_string(), &ctx, &command).await;
-
-			{
-				let mut log_message = MessageBuilder::new();
-				log_message.push_bold(format!("{} ", command.user.name));
-				log_message.push_line(format!(
-					"({}) caused an error when editing a level request",
-					command.user.id
-				));
-				log_message.push_codeblock(format!("{:?}", error), Some("rust"));
-				log_to_discord(ctx.clone(), log_message.build()).await
-			}
+			content = error.to_string();
+			log_error_to_discord(&command.user, "editing a level request", &error, None, &ctx)
+				.await;
 		}
 	}
+
+	invoke_ephemeral(&content, &ctx, &command).await;
 }
 
 pub fn register_delete_level_request() -> CreateCommand {
@@ -355,40 +302,36 @@ pub fn register_delete_level_request() -> CreateCommand {
 }
 
 pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteraction) {
+	let content: String;
 	if !command.user.id.eq(&CLIENT_CONFIG.discord_bot_admin_id) {
-		invoke_ephermal("Forbidden", &ctx, &command).await;
+		content = "Forbidden".to_string();
+		invoke_ephemeral(&content, &ctx, &command).await;
 		return;
 	}
 
-	let delete_level_request = GetLevelRequest {
-		level_id: command
-			.data
-			.options
-			.get(0)
-			.unwrap()
-			.value
-			.as_i64()
-			.unwrap()
-			.unsigned_abs()
-	};
-
+	let command_map = extract_command_options(&command);
+	let level_id = command_map
+		.get(&"level-id".to_string())
+		.unwrap()
+		.as_i64()
+		.unwrap()
+		.unsigned_abs();
 	let service = LevelRequestService::new();
 
-	match service.delete_level_request(delete_level_request).await {
-		Ok(level_request_data) => {
+	match service.delete_level_request(level_id).await {
+		Ok(level_request) => {
 			if let Err(delete_message_error) =
 				ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
-					.delete_message(&ctx.http, level_request_data.discord_message_id.unwrap())
+					.delete_message(&ctx.http, level_request.discord_message_id.unwrap())
 					.await
 			{
 				error!(
 					"Unable to delete level request message: {}",
 					delete_message_error
 				);
-				return;
 			}
 			if let Err(delete_message_error) =
-				ChannelId::new(level_request_data.discord_message_id.unwrap())
+				ChannelId::new(level_request.discord_message_id.unwrap())
 					.delete(&ctx.http)
 					.await
 			{
@@ -397,31 +340,28 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 					delete_message_error
 				);
 			}
+			log_action_to_discord(
+				&command.user,
+				"deleted a level request",
+				Some(&level_request),
+				&ctx
+			)
+			.await;
 
-			{
-				let mut log_message = MessageBuilder::new();
-				log_message.push_bold(format!("{} ", command.user.name));
-				log_message.push_line(format!("({}) has deleted a level request", command.user.id));
-				log_message.push_codeblock(format!("{:?}", &level_request_data), Some("rust"));
-				log_to_discord(ctx.clone(), log_message.build()).await
-			}
-
-			let content = "Level request has been deleted successfully!".to_string();
-			invoke_ephermal(&content, &ctx, &command).await;
+			content = "Level request has been deleted successfully!".to_string();
 		}
 		Err(error) => {
-			invoke_ephermal(&error.to_string(), &ctx, &command).await;
-
-			{
-				let mut log_message = MessageBuilder::new();
-				log_message.push_bold(format!("{} ", command.user.name));
-				log_message.push_line(format!(
-					"({}) cause an error when deleting a level request",
-					command.user.id
-				));
-				log_message.push_codeblock(format!("{:?}", error), Some("rust"));
-				log_to_discord(ctx.clone(), log_message.build()).await
-			}
+			content = error.to_string();
+			log_error_to_discord(
+				&command.user,
+				"deleting a level request",
+				&error,
+				None,
+				&ctx
+			)
+			.await;
 		}
 	}
+
+	invoke_ephemeral(&content, &ctx, &command).await;
 }
