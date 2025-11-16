@@ -18,6 +18,7 @@ pub struct RequestxApiConfigPaths {
 	pub reviewer: String,
 	pub auth: String,
 	pub send_level: String,
+	pub gd_account_link: String,
 	pub update_request_manager: String,
 	pub update_request_message_id: String,
 	pub update_review_message_id: String,

@@ -7,17 +7,18 @@ use serenity::{
 	},
 	prelude::{Context, EventHandler}
 };
-
+use serenity::all::ModalInteraction;
 use crate::{
 	config::{client_config::CLIENT_CONFIG, discord_config::init_verify_message},
-	level_request::discord::request_level,
+	level_request::discord::request_level_command,
 	level_review::discord::review,
 	request_manager::discord::request_manager,
 	reviewer::discord::reviewer,
 	send_level::discord::send_level,
 	serenity::modals::get_init_gd_account_link_modal,
-	user::discord::user
+	user::discord::user_commands
 };
+use crate::user::discord::{user_buttons, user_modals};
 
 pub struct Handler;
 
@@ -55,16 +56,16 @@ impl EventHandler for Handler {
 			.set_commands(
 				&ctx.http,
 				vec![
-					request_level::register_request_level(),
-					request_level::register_edit_level_request(),
-					request_level::register_delete_level_request(),
+					request_level_command::register_request_level(),
+					request_level_command::register_edit_level_request(),
+					request_level_command::register_delete_level_request(),
 					review::register_review(),
 					reviewer::register_add_reviewer(),
 					reviewer::register_remove_reviewer(),
 					send_level::register_send_level(),
 					request_manager::register_request_manager(),
-					user::register_view_cooldown(),
-					user::register_view_user_cooldown(),
+					user_commands::register_view_cooldown(),
+					user_commands::register_view_user_cooldown(),
 				]
 			)
 			.await
@@ -76,12 +77,12 @@ impl EventHandler for Handler {
 			debug!("Received command interaction: {command:#?}");
 
 			match command.data.name.as_str() {
-				"view-cooldown" => user::run_view_cooldown(&ctx, &command).await,
-				"view-user-cooldown" => user::run_view_user_cooldown(&ctx, &command).await,
-				"request-level" => request_level::run_request_level(&ctx, &command).await,
-				"edit-level-request" => request_level::run_edit_level_request(&ctx, &command).await,
+				"view-cooldown" => user_commands::run_view_cooldown(&ctx, &command).await,
+				"view-user-cooldown" => user_commands::run_view_user_cooldown(&ctx, &command).await,
+				"request-level" => request_level_command::run_request_level(&ctx, &command).await,
+				"edit-level-request" => request_level_command::run_edit_level_request(&ctx, &command).await,
 				"delete-level-request" => {
-					request_level::run_delete_level_request(&ctx, &command).await
+					request_level_command::run_delete_level_request(&ctx, &command).await
 				}
 				"review" => review::post_level_review(&ctx, &command).await,
 				"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command).await,
@@ -103,8 +104,11 @@ impl EventHandler for Handler {
 			if component_interaction_type == "button" {
 				handle_button_interactions(&ctx, &component_interaction, &component_interaction_id)
 					.await
-			} else {
 			}
+		} else if let Interaction::Modal(modal_interaction) = interaction {
+			handle_modal_interactions(&ctx, &modal_interaction).await
+		} else {
+			eprintln!("Unknown interaction type")
 		}
 	}
 }
@@ -129,17 +133,17 @@ async fn handle_button_interactions(
 				);
 			}
 		}
+		"verify-gd-account-link-button" => { user_buttons::run_init_gd_account_link_modal(&ctx, &button_interaction).await }
 		_ => println!("Unreachable")
 	};
 }
 
 async fn handle_modal_interactions(
 	ctx: &Context,
-	modal_interaction: &ComponentInteraction,
-	modal_interaction_id: &str
+	modal_interaction: &ModalInteraction
 ) {
-	match modal_interaction_id {
-		"init-gd-account-link-modal" => {}
+	match modal_interaction.data.custom_id.as_str() {
+		"init-gd-account-link-modal" => user_modals::run_init_gd_account_link_modal(&ctx, &modal_interaction).await,
 		_ => println!("Unreachable")
 	};
 }

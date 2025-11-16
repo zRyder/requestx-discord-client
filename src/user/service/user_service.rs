@@ -4,6 +4,8 @@ use crate::{
 	requestx_api::requestx_api_client::RequestXApiClient,
 	user::model::{discord_user::User, discord_user_error::DiscordUserError}
 };
+use crate::user::model::discord_user::{UserGDAccountLink, UserGDAccountLinkRequest};
+use crate::user::model::discord_user_error::GDAccountLinkError;
 
 pub struct UserService<'a> {
 	requestx_api_client: RequestXApiClient<'a>
@@ -28,5 +30,25 @@ impl<'a> UserService<'a> {
 				},
 				|discord_user_data| Ok(User::from(discord_user_data))
 			)
+	}
+
+	pub async fn init_gd_account_link(
+		&self,
+		user_gd_account_link_request: UserGDAccountLinkRequest
+	) -> Result<UserGDAccountLink, GDAccountLinkError> {
+		self.requestx_api_client
+			.init_gd_account_link(user_gd_account_link_request)
+			.await
+			.map_err(GDAccountLinkError::from)
+	}
+	
+	pub async fn verify_gd_account_link(
+		&self,
+		discord_user_id: u64,
+	) -> Result<(), GDAccountLinkError> {
+		self.requestx_api_client
+			.verify_gd_account_link(discord_user_id)
+			.await
+			.map_err(GDAccountLinkError::from)
 	}
 }

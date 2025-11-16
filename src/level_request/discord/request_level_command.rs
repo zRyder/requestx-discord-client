@@ -15,7 +15,7 @@ use crate::{
 	},
 	send_level::model::request_score::RequestRating,
 	serenity::discord::{
-		create_thread, extract_command_options, invoke_ephemeral, log_action_to_discord,
+		create_thread, extract_command_options, invoke_command_ephemeral, log_action_to_discord,
 		log_error_to_discord, send_level_request_message_to_discord
 	}
 };
@@ -152,7 +152,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 				}
 			}
 			content = "Level has been requested successfully!";
-			invoke_ephemeral(&content, &ctx, &command).await;
+			invoke_command_ephemeral(&content, &ctx, &command).await;
 
 			log_action_to_discord(
 				&command.user,
@@ -163,7 +163,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			.await;
 		}
 		Err(request_level_error) => {
-			invoke_ephemeral(&request_level_error.to_string(), &ctx, &command).await;
+			invoke_command_ephemeral(&request_level_error.to_string(), &ctx, &command).await;
 			log_error_to_discord(
 				&command.user,
 				"requesting a level",
@@ -285,7 +285,7 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 		}
 	}
 
-	invoke_ephemeral(&content, &ctx, &command).await;
+	invoke_command_ephemeral(&content, &ctx, &command).await;
 }
 
 pub fn register_delete_level_request() -> CreateCommand {
@@ -305,7 +305,7 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 	let content: String;
 	if !command.user.id.eq(&CLIENT_CONFIG.discord_bot_admin_id) {
 		content = "Forbidden".to_string();
-		invoke_ephemeral(&content, &ctx, &command).await;
+		invoke_command_ephemeral(&content, &ctx, &command).await;
 		return;
 	}
 
@@ -363,5 +363,5 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 		}
 	}
 
-	invoke_ephemeral(&content, &ctx, &command).await;
+	invoke_command_ephemeral(&content, &ctx, &command).await;
 }

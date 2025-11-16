@@ -18,12 +18,6 @@ pub enum LevelRequestError {
 	RequestXApiError(ErrorMessage)
 }
 
-// #[derive(Clone, Debug, PartialEq, Deserialize, Serialize, Default)]
-// pub struct UserOnCooldownError {
-// 	pub last_request_time: DateTime<Utc>,
-// 	pub request_cooldown: u64
-// }
-
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize, Default)]
 pub struct ErrorMessage {
 	pub message: String

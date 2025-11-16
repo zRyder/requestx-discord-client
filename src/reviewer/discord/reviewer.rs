@@ -7,7 +7,7 @@ use serenity::all::{
 use crate::{
 	config::{app_config::APP_CONFIG, client_config::CLIENT_CONFIG},
 	reviewer::service::reviewer_service::ReviewerService,
-	serenity::discord::{invoke_ephemeral, log_action_to_discord, log_error_to_discord}
+	serenity::discord::{invoke_command_ephemeral, log_action_to_discord, log_error_to_discord}
 };
 
 pub fn register_add_reviewer() -> CreateCommand {
@@ -35,7 +35,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 	let actor_user_id = command.user.id.get();
 	if actor_user_id != APP_CONFIG.client_config.discord_bot_admin_id {
 		discord_ephemeral_message = "Forbidden".to_string();
-		return invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
+		return invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 	}
 
 	if let Some(ResolvedOption {
@@ -46,7 +46,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 		user_to_promote = discord_server.member(&ctx.http, user.id).await.unwrap();
 	} else {
 		discord_ephemeral_message = "Unable to resolve user.".to_string();
-		return invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
+		return invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 	}
 
 	match reviewer_service
@@ -88,7 +88,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 		}
 	}
 
-	invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
+	invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 }
 
 pub fn register_remove_reviewer() -> CreateCommand {
@@ -116,7 +116,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 	let actor_user_id = command.user.id.get();
 	if actor_user_id != APP_CONFIG.client_config.discord_bot_admin_id {
 		discord_ephemeral_message = "Forbidden".to_string();
-		return invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
+		return invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 	}
 
 	if let Some(ResolvedOption {
@@ -127,7 +127,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 		user_to_demote = discord_server.member(&ctx.http, user.id).await.unwrap();
 	} else {
 		discord_ephemeral_message = "Unable to resolve user.".to_string();
-		return invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
+		return invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 	}
 
 	match reviewer_service
@@ -169,5 +169,5 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 		}
 	}
 
-	invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
+	invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 }

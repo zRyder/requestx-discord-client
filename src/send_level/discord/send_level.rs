@@ -16,7 +16,7 @@ use crate::{
 		service::send_level_service::ModeratorService
 	},
 	serenity::discord::{
-		extract_command_options, invoke_ephemeral, log_action_to_discord, log_error_to_discord
+		extract_command_options, invoke_command_ephemeral, log_action_to_discord, log_error_to_discord
 	}
 };
 
@@ -70,7 +70,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 	let content: String;
 	if !command.user.id.eq(&CLIENT_CONFIG.discord_bot_admin_id) {
 		content = "Forbidden".to_string();
-		invoke_ephemeral(&content, &ctx, &command).await;
+		invoke_command_ephemeral(&content, &ctx, &command).await;
 		return;
 	}
 
@@ -139,7 +139,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 		}
 	}
 
-	invoke_ephemeral(&content, &ctx, &command).await;
+	invoke_command_ephemeral(&content, &ctx, &command).await;
 }
 
 fn format_public_discord_message(

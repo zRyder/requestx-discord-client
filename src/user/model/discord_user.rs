@@ -52,3 +52,26 @@ impl User {
 		duration_str
 	}
 }
+
+#[derive(Serialize, Debug)]
+pub struct UserGDAccountLinkRequest {
+	pub discord_id: u64,
+	pub gd_username: String,
+}
+
+impl UserGDAccountLinkRequest {
+	pub fn new(discord_id: u64, gd_username: String) -> Self {
+		Self {
+			discord_id,
+			gd_username,
+		}
+	}
+}
+
+#[derive(Deserialize, Debug)]
+pub struct UserGDAccountLink {
+	pub discord_id: u64,
+	pub gd_username: String,
+	pub gd_player_id: u64,
+	pub gd_account_requestx_token: String
+}

@@ -12,7 +12,7 @@ use crate::{
 		model::level_review::{LevelReview, UpdateLevelReviewMessageId},
 		service::level_review_service::LevelReviewService
 	},
-	serenity::discord::{invoke_ephemeral, log_to_discord}
+	serenity::discord::{invoke_command_ephemeral, log_to_discord}
 };
 
 pub fn register_review() -> CreateCommand {
@@ -49,7 +49,7 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 		.unwrap()
 	{
 		discord_ephemeral_message = "Forbidden";
-		return invoke_ephemeral(discord_ephemeral_message, &ctx, &command).await;
+		return invoke_command_ephemeral(discord_ephemeral_message, &ctx, &command).await;
 	}
 
 	let reviewer_discord_user_id = command_user.id.get();
@@ -85,7 +85,7 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 				get_level_review_error
 			);
 			discord_ephemeral_message = "An unknown error occurred.";
-			return invoke_ephemeral(discord_ephemeral_message, &ctx, &command).await;
+			return invoke_command_ephemeral(discord_ephemeral_message, &ctx, &command).await;
 		}
 	};
 
@@ -94,7 +94,7 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 		Err(review_level_error) => {
 			error!("Error reviewing level: {:?}", review_level_error);
 			discord_ephemeral_message = "The server failed to write the level review.";
-			return invoke_ephemeral(discord_ephemeral_message, &ctx, &command).await;
+			return invoke_command_ephemeral(discord_ephemeral_message, &ctx, &command).await;
 		}
 	};
 
@@ -113,7 +113,7 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 		build_log_message(&command, level_id, &level_review)
 	)
 	.await;
-	invoke_ephemeral(discord_ephemeral_message, &ctx, &command).await;
+	invoke_command_ephemeral(discord_ephemeral_message, &ctx, &command).await;
 }
 
 fn build_log_message(
@@ -160,7 +160,7 @@ async fn send_level_review_message<'a>(
 		{
 			error!("Unable to edit review message: {}", edit_message_error);
 			let discord_ephemeral_message = "An unknown error occurred.";
-			invoke_ephemeral(discord_ephemeral_message, &ctx, &command).await;
+			invoke_command_ephemeral(discord_ephemeral_message, &ctx, &command).await;
 		}
 	} else {
 		match reviewed_level_request_thread
@@ -178,7 +178,7 @@ async fn send_level_review_message<'a>(
 			Err(send_message_error) => {
 				error!("Unable to edit review message: {}", send_message_error);
 				discord_ephemeral_message = "An unknown error occurred.";
-				invoke_ephemeral(discord_ephemeral_message, &ctx, &command).await;
+				invoke_command_ephemeral(discord_ephemeral_message, &ctx, &command).await;
 			}
 		};
 	}

@@ -27,6 +27,8 @@ use crate::{
 	},
 	user::model::{discord_user::User, discord_user_error::DiscordUserError}
 };
+use crate::user::model::discord_user::{UserGDAccountLink, UserGDAccountLinkRequest};
+use crate::user::model::discord_user_error::GDAccountLinkError;
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,
@@ -558,6 +560,94 @@ impl<'a> RequestXApiClient<'a> {
 		}
 	}
 
+	pub async fn init_gd_account_link(
+		&self,
+		user_gd_account_link_request: UserGDAccountLinkRequest
+	) -> Result<UserGDAccountLink, GDAccountLinkError> {
+		let serialized_init_gd_account_link = serde_json::to_string(&user_gd_account_link_request)
+			.map_err(|serialize_error| {
+				error!("Unable to serialize init gd account link request: {}", serialize_error);
+				GDAccountLinkError::SerializeError
+			})?;
+
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
+		let response = self
+			.web_client
+			.post(format!(
+				"{}{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.gd_account_link,
+			))
+			.body(serialized_init_gd_account_link)
+			.headers(headers)
+			.send()
+			.await
+			.map_err(|init_gd_account_link_error| {
+				error!(
+					"Error making call for init gd account link to RequestX API: {}",
+					init_gd_account_link_error
+				);
+				GDAccountLinkError::RequestError
+			})?;
+
+		let status_code = response.status();
+		let response_body = response.text().await.unwrap();
+		if status_code.is_client_error() || status_code.is_server_error() {
+			Err(RequestXApiClient::handle_init_gd_account_link_client_error(
+				status_code,
+				response_body
+			))
+		} else {
+			let user_gd_account_link: UserGDAccountLink = serde_json::from_str(&response_body)
+				.map_err(|deserialize_error| {
+					error!(
+						"Unable to deserialize OK response from RequestX API: {}",
+						deserialize_error
+					);
+					GDAccountLinkError::RequestError
+				})?;
+			Ok(user_gd_account_link)
+		}
+	}
+
+	pub async fn verify_gd_account_link(
+		&self,
+		discord_id: u64
+	) -> Result<(), GDAccountLinkError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
+		let response = self
+			.web_client
+			.get(format!(
+				"{}{}/{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.gd_account_link,
+				discord_id
+			))
+			.headers(headers)
+			.send()
+			.await
+			.map_err(|init_gd_account_link_error| {
+				error!(
+					"Error making call for verify gd account link to RequestX API: {}",
+					init_gd_account_link_error
+				);
+				GDAccountLinkError::RequestError
+			})?;
+
+		let status_code = response.status();
+		let response_body = response.text().await.unwrap();
+		if status_code.is_client_error() || status_code.is_server_error() {
+			Err(RequestXApiClient::handle_init_gd_account_link_client_error(
+				status_code,
+				response_body
+			))
+		} else {
+			Ok(())
+		}
+	}
+
 	pub async fn update_request_manager(
 		&self,
 		update_request_manager: &UpdateRequestManager
@@ -565,7 +655,7 @@ impl<'a> RequestXApiClient<'a> {
 		let serialized_update_request_manager = serde_json::to_string(&update_request_manager)
 			.map_err(|serialize_error| {
 				error!(
-					"Unable to serialize update_request_manager to json: {}",
+					"Unable to serialize update_request_manager: {}",
 					serialize_error
 				);
 				LevelRequestError::SerializeError(serialize_error.to_string())
@@ -756,6 +846,31 @@ impl<'a> RequestXApiClient<'a> {
 			ModeratorError::LevelRequestDoesNotExist
 		} else {
 			ModeratorError::RequestXApiError
+		}
+	}
+
+	fn handle_init_gd_account_link_client_error(
+		response_status: StatusCode,
+		response_body: String
+	) -> GDAccountLinkError {
+		let error_message =
+			serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
+		error!(
+			"Error response received from RequestX API: {}",
+			error_message.message
+		);
+
+		if response_status.eq(&StatusCode::NOT_FOUND) {
+			GDAccountLinkError::GDAccountDoesNotExist
+		} else if response_status.eq(&StatusCode::CONFLICT) {
+			GDAccountLinkError::DiscordAccountAlreadyLinked
+		} else if response_status.eq(&StatusCode::UNAUTHORIZED) {
+			GDAccountLinkError::InvalidGDAccountLinkToken
+		} else if response_status.eq(&StatusCode::GONE) {
+			GDAccountLinkError::GDAccountLinkExpired
+		}
+		else {
+			GDAccountLinkError::RequestXApiError(error_message)
 		}
 	}
 }

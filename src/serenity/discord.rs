@@ -11,6 +11,7 @@ use serenity::{
 	},
 	Error as SerenityError
 };
+use serenity::all::{ComponentInteraction, ModalInteraction};
 use tokio::{sync::mpsc, task};
 
 use crate::{
@@ -38,7 +39,9 @@ pub async fn log_action_to_discord(
 	let mut log_message = MessageBuilder::new();
 	log_message.push_bold(format!("{} ", user.name));
 	log_message.push_line(format!("({}) has {}", user.id, operation_message));
-	log_message.push_codeblock(format!("{:?}", &extra_log_ctx), Some("rust"));
+	if let Some(extra_log_ctx) = extra_log_ctx {
+		log_message.push_codeblock(format!("{:?}", &extra_log_ctx), Some("rust"));
+	}
 
 	log_to_discord(ctx.clone(), log_message.build()).await
 }
@@ -57,8 +60,8 @@ pub async fn log_error_to_discord(
 		user.id, operation_message
 	));
 	log_message.push_codeblock(format!("{:?}", error), Some("rust"));
-	if let Some(extra_log) = extra_log_ctx {
-		log_message.push_codeblock(format!("{:?}", extra_log), Some("rust"));
+	if let Some(extra_log_ctx) = extra_log_ctx {
+		log_message.push_codeblock(format!("{:?}", extra_log_ctx), Some("rust"));
 	};
 
 	log_to_discord(ctx.clone(), log_message.build()).await
@@ -164,13 +167,33 @@ pub async fn send_level_request_message_to_discord(
 	}
 }
 
-pub async fn invoke_ephemeral(content: &str, ctx: &Context, command: &CommandInteraction) {
+pub async fn invoke_command_ephemeral(content: &str, ctx: &Context, command: &CommandInteraction) {
 	let data = CreateInteractionResponseMessage::new()
 		.ephemeral(true)
 		.content(content);
 	let builder = CreateInteractionResponse::Message(data);
 	if let Err(err) = command.create_response(&ctx.http, builder).await {
 		error!("Cannot respond to slash command: {err}");
+	}
+}
+
+pub async fn invoke_modal_ephemeral(content: &str, ctx: &Context, modal_interaction: &ModalInteraction) {
+	let data = CreateInteractionResponseMessage::new()
+		.ephemeral(true)
+		.content(content);
+	let builder = CreateInteractionResponse::Message(data);
+	if let Err(err) = modal_interaction.create_response(&ctx.http, builder).await {
+		error!("Cannot respond to modal: {err}");
+	}
+}
+
+pub async fn invoke_component_ephemeral(content: &str, ctx: &Context, component: &ComponentInteraction) {
+	let data = CreateInteractionResponseMessage::new()
+		.ephemeral(true)
+		.content(content);
+	let builder = CreateInteractionResponse::Message(data);
+	if let Err(err) = component.create_response(&ctx.http, builder).await {
+		error!("Cannot respond to component: {err}");
 	}
 }
 
@@ -203,16 +226,19 @@ pub fn get_init_gd_account_link_embed(bot_user: &User) -> CreateEmbed {
 	init_message_embed = init_message_embed.timestamp(Utc::now());
 	init_message_embed = init_message_embed.field(
 		"",
-		"In order to make level request while Ryder is taking user created \
-                    level requests only, you must link your GD account. In order to link your GD account \
-                    follow the instructions below:\n\
-                    - Press the \"Link GD Account\" button below\n\
-                    - Enter your GD username when prompted and press submit\n\
-                    - Copy the token that will be sent to your DMs as well as in this channel\n\
-                    - Make a profile post containing that token\n\
-                    - Press the \"Verify GD Account Link\" button in the below embed.\n\
-                    \n\
-                    If you need assistance, send a DM to Ryder.",
+		format!(
+			"In order to make level request while Ryder is taking user created \
+			level requests only, you must link your GD account. In order to link your GD account \
+            follow the instructions below:\n\
+            - Press the \"Link GD Account\" button below\n\
+            - Enter your GD username when prompted and press submit\n\
+            - Copy the token that will be sent in this channel\n\
+            - Make a profile post containing that token\n\
+            - Press the \"Verify GD Account Link\" button in the below embed\n\
+            \n\n\
+            If you need assistance, send a DM to <@{}>.",
+			CLIENT_CONFIG.discord_bot_admin_id
+		),
 		false,
 	);
 
