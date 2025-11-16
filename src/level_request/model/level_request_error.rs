@@ -4,6 +4,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+
 use crate::user::model::discord_user::User;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -47,8 +48,7 @@ impl Display for LevelRequestError {
 				write!(
 					f,
 					"You are still on cooldown, you can request again in **{}**.",
-					user.format_cooldown()
-					.unwrap()
+					user.format_cooldown().unwrap()
 				)
 			}
 			LevelRequestError::RequestsDisabled => {

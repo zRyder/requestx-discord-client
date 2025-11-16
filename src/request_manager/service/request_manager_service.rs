@@ -1,6 +1,8 @@
-use crate::level_request::model::level_request_error::LevelRequestError;
-use crate::request_manager::model::request_manager::UpdateRequestManager;
-use crate::requestx_api::requestx_api_client::RequestXApiClient;
+use crate::{
+	level_request::model::level_request_error::LevelRequestError,
+	request_manager::model::request_manager::UpdateRequestManager,
+	requestx_api::requestx_api_client::RequestXApiClient
+};
 
 pub struct RequestManagerService<'a> {
 	requestx_api_client: RequestXApiClient<'a>

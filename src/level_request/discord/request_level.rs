@@ -9,14 +9,16 @@ use serenity::{
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
+	level_request::{
+		model::level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
+		service::level_request_service::LevelRequestService
+	},
+	send_level::model::request_score::RequestRating,
 	serenity::discord::{
 		create_thread, extract_command_options, invoke_ephemeral, log_action_to_discord,
 		log_error_to_discord, send_level_request_message_to_discord
 	}
 };
-use crate::level_request::service::level_request_service::LevelRequestService;
-use crate::level_request::model::level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId};
-use crate::send_level::model::request_score::RequestRating;
 
 pub fn register_request_level() -> CreateCommand {
 	CreateCommand::new("request-level")

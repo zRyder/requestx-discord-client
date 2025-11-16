@@ -1,19 +1,23 @@
 use async_trait::async_trait;
 use log::{debug, error, info};
 use serenity::{
-    all::{GuildId, Interaction, Message, MessageType, Ready},
-    prelude::{Context, EventHandler}
+	all::{
+		ComponentInteraction, CreateInteractionResponse, GuildId, Interaction, Message,
+		MessageType, Ready
+	},
+	prelude::{Context, EventHandler}
 };
-use serenity::all::{ComponentInteraction, CreateInteractionResponse};
-use crate::config::client_config::CLIENT_CONFIG;
-use crate::config::discord_config::init_verify_message;
-use crate::level_request::discord::request_level;
-use crate::level_review::discord::review;
-use crate::request_manager::discord::request_manager;
-use crate::reviewer::discord::reviewer;
-use crate::send_level::discord::send_level;
-use crate::serenity::modals::get_init_gd_account_link_modal;
-use crate::user::discord::user;
+
+use crate::{
+	config::{client_config::CLIENT_CONFIG, discord_config::init_verify_message},
+	level_request::discord::request_level,
+	level_review::discord::review,
+	request_manager::discord::request_manager,
+	reviewer::discord::reviewer,
+	send_level::discord::send_level,
+	serenity::modals::get_init_gd_account_link_modal,
+	user::discord::user
+};
 
 pub struct Handler;
 
@@ -97,13 +101,9 @@ impl EventHandler for Handler {
 				.to_owned();
 
 			if component_interaction_type == "button" {
-				handle_button_interactions(
-					&ctx,
-					&component_interaction,
-					&component_interaction_id
-				).await
+				handle_button_interactions(&ctx, &component_interaction, &component_interaction_id)
+					.await
 			} else {
-
 			}
 		}
 	}
@@ -112,15 +112,21 @@ impl EventHandler for Handler {
 async fn handle_button_interactions(
 	ctx: &Context,
 	button_interaction: &ComponentInteraction,
-	button_interaction_id: &str,
+	button_interaction_id: &str
 ) {
 	match button_interaction_id {
 		"init-gd-account-link-button" => {
-			if let Err(create_modal_error) = button_interaction.create_response(
-				&ctx.http,
-				CreateInteractionResponse::Modal(get_init_gd_account_link_modal()),
-			).await {
-				error!("Unable to create init-gd account link modal: {}", create_modal_error);
+			if let Err(create_modal_error) = button_interaction
+				.create_response(
+					&ctx.http,
+					CreateInteractionResponse::Modal(get_init_gd_account_link_modal())
+				)
+				.await
+			{
+				error!(
+					"Unable to create init-gd account link modal: {}",
+					create_modal_error
+				);
 			}
 		}
 		_ => println!("Unreachable")
@@ -130,7 +136,7 @@ async fn handle_button_interactions(
 async fn handle_modal_interactions(
 	ctx: &Context,
 	modal_interaction: &ComponentInteraction,
-	modal_interaction_id: &str,
+	modal_interaction_id: &str
 ) {
 	match modal_interaction_id {
 		"init-gd-account-link-modal" => {}

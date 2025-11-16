@@ -1,9 +1,13 @@
 use log::warn;
 
-use crate::config::constants::YOUTUBE_LINK_REGEX;
-use crate::level_request::model::level_request_error::LevelRequestError;
-use crate::level_request::model::level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId};
-use crate::requestx_api::requestx_api_client::RequestXApiClient;
+use crate::{
+	config::constants::YOUTUBE_LINK_REGEX,
+	level_request::model::{
+		level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
+		level_request_error::LevelRequestError
+	},
+	requestx_api::requestx_api_client::RequestXApiClient
+};
 
 pub struct LevelRequestService<'a> {
 	requestx_api_client: RequestXApiClient<'a>

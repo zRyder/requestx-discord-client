@@ -1,20 +1,22 @@
 use std::{collections::HashMap, error::Error, fmt::Debug};
+
 use chrono::Utc;
 use log::error;
 use serenity::{
 	all::{
-		ChannelId, CommandDataOptionValue, CommandInteraction, Context, CreateInteractionResponse,
+		ChannelId, CommandDataOptionValue, CommandInteraction, Context, CreateEmbed,
+		CreateEmbedAuthor, CreateEmbedFooter, CreateInteractionResponse,
 		CreateInteractionResponseMessage, CreateMessage, CreateThread, EditMessage, Message,
-		MessageBuilder
+		MessageBuilder, User
 	},
 	Error as SerenityError
 };
-use serenity::all::{CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter, User};
 use tokio::{sync::mpsc, task};
 
-use crate::config::client_config::CLIENT_CONFIG;
-use crate::level_request::model::level_request::LevelRequest;
-use crate::send_level::model::request_score::LevelLength;
+use crate::{
+	config::client_config::CLIENT_CONFIG, level_request::model::level_request::LevelRequest,
+	send_level::model::request_score::LevelLength
+};
 
 pub fn extract_command_options(
 	command: &CommandInteraction
@@ -227,7 +229,7 @@ pub fn get_verify_gd_account_link_embed(bot_user: &User) -> CreateEmbed {
 		"",
 		"Once you have posted the token from the above step \
 		click the \"Verify GD Account Link\" button below.",
-		false,
+		false
 	);
 
 	init_message_embed

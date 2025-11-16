@@ -1,13 +1,13 @@
 mod config;
 
-mod serenity;
 mod level_request;
 mod level_review;
 mod request_manager;
 mod requestx_api;
-mod user;
-mod send_level;
 mod reviewer;
+mod send_level;
+mod serenity;
+mod user;
 
 use std::process;
 

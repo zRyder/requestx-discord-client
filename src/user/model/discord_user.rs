@@ -18,7 +18,8 @@ impl User {
 		let days = duration_since_last_request.num_days();
 		let hours = duration_since_last_request.num_hours() - (days * 24);
 		let minutes = duration_since_last_request.num_minutes() - (days * 1440 + hours * 60);
-		let seconds = duration_since_last_request.num_seconds() - (days * 86400 + hours * 3600 + minutes * 60);
+		let seconds = duration_since_last_request.num_seconds()
+			- (days * 86400 + hours * 3600 + minutes * 60);
 
 		// Display the duration
 		let mut units = Vec::new();

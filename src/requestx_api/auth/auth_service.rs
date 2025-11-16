@@ -9,11 +9,13 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
-use crate::config::{
-	auth_config::AUTH_CONFIG, client_config::CLIENT_CONFIG, constants::CONTENT_LENGTH,
-	requestx_api_config::REQUESTX_API_CONFIG
+use crate::{
+	config::{
+		auth_config::AUTH_CONFIG, client_config::CLIENT_CONFIG, constants::CONTENT_LENGTH,
+		requestx_api_config::REQUESTX_API_CONFIG
+	},
+	requestx_api::auth::auth_error::AuthError
 };
-use crate::requestx_api::auth::auth_error::AuthError;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -32,7 +34,8 @@ impl JWT {
 
 		if jwt_lock
 			.as_ref()
-			.map_or(true, |token| Self::is_expired(token)) {
+			.map_or(true, |token| Self::is_expired(token))
+		{
 			warn!("JWT is expired or null, generating new token");
 			match Self::generate_token().await {
 				Ok(jwt) => {
@@ -86,7 +89,8 @@ impl JWT {
 			))
 			.headers(headers)
 			.send()
-			.await {
+			.await
+		{
 			Ok(resp) => {
 				if resp.status().eq(&StatusCode::CREATED) {
 					Ok(resp

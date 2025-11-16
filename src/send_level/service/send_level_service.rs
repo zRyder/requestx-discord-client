@@ -1,8 +1,12 @@
 use log::error;
 
-use crate::send_level::model::send_level_error::ModeratorError;
-use crate::requestx_api::requestx_api_client::RequestXApiClient;
-use crate::send_level::model::moderator::{SendLevelRequest, SentLevel};
+use crate::{
+	requestx_api::requestx_api_client::RequestXApiClient,
+	send_level::model::{
+		moderator::{SendLevelRequest, SentLevel},
+		send_level_error::ModeratorError
+	}
+};
 
 pub struct ModeratorService<'a> {
 	requestx_api_client: RequestXApiClient<'a>

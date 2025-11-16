@@ -1,13 +1,19 @@
 use log::error;
-use serenity::all::{ChannelId, Color, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, CreateEmbed, CreateMessage, EditMessage, Mentionable, Message, MessageBuilder, UserId};
+use serenity::all::{
+	ChannelId, Color, CommandInteraction, CommandOptionType, Context, CreateCommand,
+	CreateCommandOption, CreateEmbed, CreateMessage, EditMessage, Mentionable, Message,
+	MessageBuilder, UserId
+};
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
+	level_request::model::level_request::LevelRequest,
+	level_review::{
+		model::level_review::{LevelReview, UpdateLevelReviewMessageId},
+		service::level_review_service::LevelReviewService
+	},
 	serenity::discord::{invoke_ephemeral, log_to_discord}
 };
-use crate::level_review::model::level_review::{LevelReview, UpdateLevelReviewMessageId};
-use crate::level_review::service::level_review_service::LevelReviewService;
-use crate::level_request::model::level_request::LevelRequest;
 
 pub fn register_review() -> CreateCommand {
 	CreateCommand::new("review")
@@ -66,11 +72,12 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 
 	let level_review = match level_review_service
 		.get_level_review(reviewer_discord_user_id, level_id)
-		.await {
+		.await
+	{
 		Ok(Some(mut existing_level_review)) => {
 			existing_level_review.review_contents = review_contents;
 			existing_level_review
-		},
+		}
 		Ok(None) => LevelReview::new(reviewer_discord_user_id, None, level_id, review_contents),
 		Err(get_level_review_error) => {
 			error!(
@@ -97,21 +104,23 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 		&reviewed_level_request,
 		&level_review_service,
 		&level_review
-	).await;
+	)
+	.await;
 
 	discord_ephemeral_message = "Review submitted!";
 	log_to_discord(
 		ctx.clone(),
-		build_log_message(
-			&command,
-			level_id,
-			&level_review
-		)
-	).await;
+		build_log_message(&command, level_id, &level_review)
+	)
+	.await;
 	invoke_ephemeral(discord_ephemeral_message, &ctx, &command).await;
 }
 
-fn build_log_message(command: &CommandInteraction, level_id: u64, level_review: &LevelReview) -> String {
+fn build_log_message(
+	command: &CommandInteraction,
+	level_id: u64,
+	level_review: &LevelReview
+) -> String {
 	let mut log_message = MessageBuilder::new();
 	log_message.push_bold(format!("{} ", command.user.name));
 	log_message.push_line(format!(
@@ -147,7 +156,8 @@ async fn send_level_review_message<'a>(
 					.content(&review_message.build())
 					.embed(level_review_embed)
 			)
-			.await {
+			.await
+		{
 			error!("Unable to edit review message: {}", edit_message_error);
 			let discord_ephemeral_message = "An unknown error occurred.";
 			invoke_ephemeral(discord_ephemeral_message, &ctx, &command).await;
@@ -160,7 +170,8 @@ async fn send_level_review_message<'a>(
 					.content(&review_message.build())
 					.embed(level_review_embed)
 			)
-			.await {
+			.await
+		{
 			Ok(message) => {
 				update_level_review_message_id(level_review_service, level_review, message).await;
 			}
@@ -185,7 +196,8 @@ async fn update_level_review_message_id<'a>(
 	);
 	if let Err(update_level_review_message_id) = level_review_service
 		.update_level_review_message_id(update_level_review_message_id_request)
-		.await {
+		.await
+	{
 		error!(
 			"Unable to update level review message id: {:?}",
 			update_level_review_message_id
@@ -193,7 +205,11 @@ async fn update_level_review_message_id<'a>(
 	}
 }
 
-fn build_level_review_message(command: &CommandInteraction, level_review: &LevelReview, reviewed_level_request: &LevelRequest) -> (MessageBuilder, CreateEmbed) {
+fn build_level_review_message(
+	command: &CommandInteraction,
+	level_review: &LevelReview,
+	reviewed_level_request: &LevelRequest
+) -> (MessageBuilder, CreateEmbed) {
 	let mut review_message = MessageBuilder::new();
 
 	if reviewed_level_request.notify {
@@ -213,7 +229,8 @@ fn build_level_review_message(command: &CommandInteraction, level_review: &Level
 	for paragraph in level_review
 		.review_contents
 		.lines()
-		.filter(|line| !line.trim().is_empty()) {
+		.filter(|line| !line.trim().is_empty())
+	{
 		level_review_embed = level_review_embed.field("", paragraph, false);
 	}
 	(review_message, level_review_embed)

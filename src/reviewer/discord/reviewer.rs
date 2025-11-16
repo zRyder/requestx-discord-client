@@ -6,10 +6,9 @@ use serenity::all::{
 
 use crate::{
 	config::{app_config::APP_CONFIG, client_config::CLIENT_CONFIG},
-	serenity::discord::invoke_ephemeral
+	reviewer::service::reviewer_service::ReviewerService,
+	serenity::discord::{invoke_ephemeral, log_action_to_discord, log_error_to_discord}
 };
-use crate::reviewer::service::reviewer_service::ReviewerService;
-use crate::serenity::discord::{log_action_to_discord, log_error_to_discord};
 
 pub fn register_add_reviewer() -> CreateCommand {
 	CreateCommand::new("add-reviewer")
@@ -36,13 +35,14 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 	let actor_user_id = command.user.id.get();
 	if actor_user_id != APP_CONFIG.client_config.discord_bot_admin_id {
 		discord_ephemeral_message = "Forbidden".to_string();
-		return invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await
+		return invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 	}
 
 	if let Some(ResolvedOption {
 		value: ResolvedValue::User(user, _),
 		..
-	}) = command_options.get(0) {
+	}) = command_options.get(0)
+	{
 		user_to_promote = discord_server.member(&ctx.http, user.id).await.unwrap();
 	} else {
 		discord_ephemeral_message = "Unable to resolve user.".to_string();
@@ -51,7 +51,8 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 
 	match reviewer_service
 		.create_reviewer(user_to_promote.user.id.get())
-		.await {
+		.await
+	{
 		Err(create_reviewer_error) => {
 			discord_ephemeral_message = "Unable to promote user to reviewer.".to_string();
 			log_error_to_discord(
@@ -60,14 +61,16 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 				&create_reviewer_error,
 				None,
 				&ctx
-			).await;
+			)
+			.await;
 		}
 		Ok(()) => {
 			discord_ephemeral_message = "User has been promoted to reviewer".to_string();
 
 			if let Err(add_reviewer_role_error) = user_to_promote
 				.add_role(&ctx.http, CLIENT_CONFIG.discord_reviewer_role_id)
-				.await {
+				.await
+			{
 				log_message.push_line("But there was an error assigning the role".to_string());
 				error!(
 					"Error assigning reviewer role to member: {}",
@@ -80,7 +83,8 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 				"promoted user to reviewer",
 				Some(&user_to_promote.user.id.get()),
 				&ctx
-			).await;
+			)
+			.await;
 		}
 	}
 
@@ -112,13 +116,14 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 	let actor_user_id = command.user.id.get();
 	if actor_user_id != APP_CONFIG.client_config.discord_bot_admin_id {
 		discord_ephemeral_message = "Forbidden".to_string();
-		return invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await
+		return invoke_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 	}
 
 	if let Some(ResolvedOption {
 		value: ResolvedValue::User(user, _),
 		..
-	}) = command_options.get(0) {
+	}) = command_options.get(0)
+	{
 		user_to_demote = discord_server.member(&ctx.http, user.id).await.unwrap();
 	} else {
 		discord_ephemeral_message = "Unable to resolve user.".to_string();
@@ -127,7 +132,8 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 
 	match reviewer_service
 		.remove_reviewer(user_to_demote.user.id.get())
-		.await {
+		.await
+	{
 		Err(remove_reviewer_error) => {
 			discord_ephemeral_message = "Unable to demote user from reviewer.".to_string();
 			log_error_to_discord(
@@ -136,14 +142,16 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 				&remove_reviewer_error,
 				Some(&user_to_demote.user.id.get()),
 				&ctx
-			).await;
+			)
+			.await;
 		}
 		Ok(()) => {
 			discord_ephemeral_message = "User has been demoted from reviewer.".to_string();
 
 			if let Err(remove_reviewer_role_error) = user_to_demote
 				.remove_role(&ctx.http, CLIENT_CONFIG.discord_reviewer_role_id)
-				.await {
+				.await
+			{
 				log_message.push_line("But there was an error removing the role".to_string());
 				error!(
 					"Error removing reviewer role from member: {}",
@@ -156,7 +164,8 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 				"demoted user from reviewer",
 				Some(&user_to_demote.user.id.get()),
 				&ctx
-			).await;
+			)
+			.await;
 		}
 	}
 

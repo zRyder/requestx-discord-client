@@ -8,13 +8,17 @@ use serenity::all::{
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
+	send_level::{
+		model::{
+			moderator::{SendLevelRequest, SentLevel, SuggestedRating, SuggestedScore},
+			request_score::LevelLength
+		},
+		service::send_level_service::ModeratorService
+	},
 	serenity::discord::{
 		extract_command_options, invoke_ephemeral, log_action_to_discord, log_error_to_discord
 	}
 };
-use crate::send_level::model::moderator::{SendLevelRequest, SentLevel, SuggestedRating, SuggestedScore};
-use crate::send_level::model::request_score::LevelLength;
-use crate::send_level::service::send_level_service::ModeratorService;
 
 pub fn register_send_level() -> CreateCommand {
 	CreateCommand::new("send-level")

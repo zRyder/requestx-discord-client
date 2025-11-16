@@ -5,11 +5,12 @@ use serenity::all::{
 
 use crate::{
 	config::app_config::APP_CONFIG,
-	serenity::discord::{invoke_ephemeral, log_to_discord}
+	serenity::discord::{invoke_ephemeral, log_to_discord},
+	user::{
+		model::{discord_user::User, discord_user_error::DiscordUserError},
+		service::user_service::UserService
+	}
 };
-use crate::user::model::discord_user::User;
-use crate::user::model::discord_user_error::DiscordUserError;
-use crate::user::service::user_service::UserService;
 
 pub fn register_view_cooldown() -> CreateCommand {
 	CreateCommand::new("view-cooldown")
@@ -97,22 +98,18 @@ pub async fn run_view_user_cooldown(ctx: &Context, command: &CommandInteraction)
 	}
 }
 
-async fn output_user_cooldown(
-	ctx: &Context,
-	command: &CommandInteraction,
-	discord_user: &User
-) {
+async fn output_user_cooldown(ctx: &Context, command: &CommandInteraction, discord_user: &User) {
 	if let Some(cooldown_string) = discord_user.format_cooldown() {
 		invoke_ephemeral(
 			format!(
 				"You are still on cooldown, you can request again in **{}**.",
 				cooldown_string
 			)
-				.as_str(),
+			.as_str(),
 			&ctx,
 			&command
 		)
-			.await;
+		.await;
 	} else {
 		invoke_ephemeral("You can request a level now", &ctx, &command).await;
 	}

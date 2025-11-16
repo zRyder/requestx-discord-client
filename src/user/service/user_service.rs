@@ -1,8 +1,9 @@
 use log::warn;
 
-use crate::user::model::discord_user::User;
-use crate::requestx_api::requestx_api_client::RequestXApiClient;
-use crate::user::model::discord_user_error::DiscordUserError;
+use crate::{
+	requestx_api::requestx_api_client::RequestXApiClient,
+	user::model::{discord_user::User, discord_user_error::DiscordUserError}
+};
 
 pub struct UserService<'a> {
 	requestx_api_client: RequestXApiClient<'a>

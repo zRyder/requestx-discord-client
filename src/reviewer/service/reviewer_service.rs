@@ -1,6 +1,7 @@
-use crate::reviewer::model::reviewer::CreateReviewerRequest;
-use crate::reviewer::model::reviewer_error::ReviewerError;
-use crate::requestx_api::requestx_api_client::RequestXApiClient;
+use crate::{
+	requestx_api::requestx_api_client::RequestXApiClient,
+	reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError}
+};
 
 pub struct ReviewerService<'a> {
 	requestx_api_client: RequestXApiClient<'a>

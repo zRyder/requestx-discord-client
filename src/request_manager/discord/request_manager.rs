@@ -3,9 +3,13 @@ use serenity::{
 	builder::{CreateCommand, CreateCommandOption}
 };
 
-use crate::serenity::discord::invoke_ephemeral;
-use crate::request_manager::model::request_manager::UpdateRequestManager;
-use crate::request_manager::service::request_manager_service::RequestManagerService;
+use crate::{
+	request_manager::{
+		model::request_manager::UpdateRequestManager,
+		service::request_manager_service::RequestManagerService
+	},
+	serenity::discord::invoke_ephemeral
+};
 
 pub fn register_request_manager() -> CreateCommand {
 	CreateCommand::new("request-manager")

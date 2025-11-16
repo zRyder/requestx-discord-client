@@ -4,23 +4,29 @@ use reqwest::{
 	Client, StatusCode
 };
 
-use crate::config::{
-	client_config::CLIENT_CONFIG,
-	constants::{APPLICATION_JSON, CONTENT_TYPE},
-	requestx_api_config::{RequestxApiConfig, REQUESTX_API_CONFIG}
+use crate::{
+	config::{
+		client_config::CLIENT_CONFIG,
+		constants::{APPLICATION_JSON, CONTENT_TYPE},
+		requestx_api_config::{RequestxApiConfig, REQUESTX_API_CONFIG}
+	},
+	level_request::model::{
+		level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
+		level_request_error::{ErrorMessage, LevelRequestError}
+	},
+	level_review::model::{
+		level_review::{LevelReview, UpdateLevelReviewMessageId},
+		level_review_error::LevelReviewError
+	},
+	request_manager::model::request_manager::UpdateRequestManager,
+	requestx_api::auth::auth_service::JWT,
+	reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError},
+	send_level::model::{
+		moderator::{SendLevelRequest, SentLevel},
+		send_level_error::ModeratorError
+	},
+	user::model::{discord_user::User, discord_user_error::DiscordUserError}
 };
-use crate::level_request::model::level_request_error::{ErrorMessage, LevelRequestError};
-use crate::level_request::model::level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId};
-use crate::level_review::model::level_review::{LevelReview, UpdateLevelReviewMessageId};
-use crate::level_review::model::level_review_error::LevelReviewError;
-use crate::reviewer::model::reviewer_error::ReviewerError;
-use crate::request_manager::model::request_manager::UpdateRequestManager;
-use crate::requestx_api::auth::auth_service::JWT;
-use crate::reviewer::model::reviewer::CreateReviewerRequest;
-use crate::send_level::model::moderator::{SendLevelRequest, SentLevel};
-use crate::send_level::model::send_level_error::ModeratorError;
-use crate::user::model::discord_user::User;
-use crate::user::model::discord_user_error::DiscordUserError;
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,
@@ -759,10 +765,12 @@ mod tests {
 	use httpmock::MockServer;
 	use tokio_test::{assert_err, assert_ok};
 
-	use crate::config::requestx_api_config::REQUESTX_API_CONFIG;
-	use crate::level_request::model::level_request::LevelRequest;
-	use crate::requestx_api::requestx_api_client::RequestXApiClient;
-	use crate::send_level::model::request_score::RequestRating;
+	use crate::{
+		config::requestx_api_config::REQUESTX_API_CONFIG,
+		level_request::model::level_request::LevelRequest,
+		requestx_api::requestx_api_client::RequestXApiClient,
+		send_level::model::request_score::RequestRating
+	};
 
 	async fn init_mock_server() -> MockServer {
 		let url = url::Url::parse(&*REQUESTX_API_CONFIG.base_url).unwrap();

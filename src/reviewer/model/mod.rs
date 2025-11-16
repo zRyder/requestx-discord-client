@@ -1,2 +1,2 @@
-pub mod reviewer_error;
 pub mod reviewer;
+pub mod reviewer_error;
