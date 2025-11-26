@@ -14,6 +14,7 @@ pub enum LevelRequestError {
 	RequestError,
 	SerializeError(String),
 	UserOnCooldown(User),
+	RequestNonCreatedLevel,
 	RequestsDisabled,
 	RequestXApiError(ErrorMessage)
 }
@@ -27,15 +28,15 @@ impl Display for LevelRequestError {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		match self {
 			LevelRequestError::LevelRequestExists => {
-				write!(f, "Level has already been requested")
+				write!(f, "Level has already been requested.")
 			}
 			LevelRequestError::RequestError => {
-				write!(f, "Unable to make request to server")
+				write!(f, "Unable to make request to server.")
 			}
 			LevelRequestError::SerializeError(_field) => {
 				write!(
 					f,
-					"Unable to serialize level request, double check your YouTube link"
+					"Unable to serialize level request, double check your YouTube link."
 				)
 			}
 			LevelRequestError::UserOnCooldown(user) => {
@@ -45,11 +46,14 @@ impl Display for LevelRequestError {
 					user.format_cooldown().unwrap()
 				)
 			}
+			LevelRequestError::RequestNonCreatedLevel => {
+				write!(f, "You cannot request a level that you did not create at this time.")
+			}
 			LevelRequestError::RequestsDisabled => {
-				write!(f, "Requests are currently disabled ")
+				write!(f, "Requests are currently disabled.")
 			}
 			LevelRequestError::RequestXApiError(_error_message) => {
-				write!(f, "The server failed to make the level request")
+				write!(f, "The server failed to make the level request.")
 			}
 		}
 	}

@@ -12,7 +12,7 @@ use crate::{
 	config::{client_config::CLIENT_CONFIG, discord_config::init_verify_message},
 	level_request::discord::request_level_command,
 	level_review::discord::review,
-	request_manager::discord::request_manager,
+	request_manager::discord::request_manager_commands,
 	reviewer::discord::reviewer,
 	send_level::discord::send_level,
 	serenity::modals::get_init_gd_account_link_modal,
@@ -63,7 +63,7 @@ impl EventHandler for Handler {
 					reviewer::register_add_reviewer(),
 					reviewer::register_remove_reviewer(),
 					send_level::register_send_level(),
-					request_manager::register_request_manager(),
+					request_manager_commands::register_request_manager(),
 					user_commands::register_view_cooldown(),
 					user_commands::register_view_user_cooldown(),
 				]
@@ -88,7 +88,7 @@ impl EventHandler for Handler {
 				"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command).await,
 				"remove-reviewer" => reviewer::run_remove_reviewer(&ctx, &command).await,
 				"send-level" => send_level::run_send_level(&ctx, &command).await,
-				"request-manager" => request_manager::run_request_manager(&ctx, &command).await,
+				"request-manager" => request_manager_commands::run_request_manager(&ctx, &command).await,
 				_ => println!("Unreachable")
 			};
 		} else if let Interaction::Component(component_interaction) = interaction {

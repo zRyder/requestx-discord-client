@@ -1,7 +1,7 @@
 use crate::{
-	level_request::model::level_request_error::LevelRequestError,
-	request_manager::model::request_manager::UpdateRequestManager,
-	requestx_api::requestx_api_client::RequestXApiClient
+    level_request::model::level_request_error::LevelRequestError,
+    request_manager::model::request_manager::UpdateRequestManagerRequest,
+    requestx_api::requestx_api_client::RequestXApiClient
 };
 
 pub struct RequestManagerService<'a> {
@@ -17,11 +17,10 @@ impl<'a> RequestManagerService<'a> {
 
 	pub async fn update_request_manager(
 		&self,
-		update_request_manager: &UpdateRequestManager
+		update_request_manager: &UpdateRequestManagerRequest
 	) -> Result<(), LevelRequestError> {
-		return self
-			.requestx_api_client
+		self.requestx_api_client
 			.update_request_manager(update_request_manager)
-			.await;
+			.await
 	}
 }

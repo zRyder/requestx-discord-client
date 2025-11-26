@@ -3,29 +3,28 @@ use reqwest::{
 	header::{HeaderMap, HeaderValue},
 	Client, StatusCode
 };
-
 use crate::{
-	config::{
+    config::{
 		client_config::CLIENT_CONFIG,
 		constants::{APPLICATION_JSON, CONTENT_TYPE},
 		requestx_api_config::{RequestxApiConfig, REQUESTX_API_CONFIG}
 	},
-	level_request::model::{
+    level_request::model::{
 		level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
 		level_request_error::{ErrorMessage, LevelRequestError}
 	},
-	level_review::model::{
+    level_review::model::{
 		level_review::{LevelReview, UpdateLevelReviewMessageId},
 		level_review_error::LevelReviewError
 	},
-	request_manager::model::request_manager::UpdateRequestManager,
-	requestx_api::auth::auth_service::JWT,
-	reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError},
-	send_level::model::{
+    request_manager::model::request_manager::UpdateRequestManagerRequest,
+    requestx_api::auth::auth_service::JWT,
+    reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError},
+    send_level::model::{
 		moderator::{SendLevelRequest, SentLevel},
 		send_level_error::ModeratorError
 	},
-	user::model::{discord_user::User, discord_user_error::DiscordUserError}
+    user::model::{discord_user::User, discord_user_error::DiscordUserError}
 };
 use crate::user::model::discord_user::{UserGDAccountLink, UserGDAccountLinkRequest};
 use crate::user::model::discord_user_error::GDAccountLinkError;
@@ -650,7 +649,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn update_request_manager(
 		&self,
-		update_request_manager: &UpdateRequestManager
+		update_request_manager: &UpdateRequestManagerRequest
 	) -> Result<(), LevelRequestError> {
 		let serialized_update_request_manager = serde_json::to_string(&update_request_manager)
 			.map_err(|serialize_error| {
@@ -822,6 +821,13 @@ impl<'a> RequestXApiClient<'a> {
 		);
 
 		match response_status {
+			StatusCode::BAD_REQUEST => {
+				if error_message.message.contains("request a level they did not create") {
+					LevelRequestError::RequestNonCreatedLevel
+				} else {
+					LevelRequestError::RequestXApiError(error_message)
+				}
+			}
 			StatusCode::CONFLICT => LevelRequestError::LevelRequestExists,
 			StatusCode::TOO_MANY_REQUESTS => LevelRequestError::UserOnCooldown(
 				serde_json::from_str::<User>(&*response_body).unwrap_or_default()

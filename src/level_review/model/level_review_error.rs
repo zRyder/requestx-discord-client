@@ -56,6 +56,7 @@ impl From<LevelRequestError> for LevelReviewError {
 				LevelReviewError::RequestXApiError(error_message)
 			}
 			LevelRequestError::UserOnCooldown(_) => LevelReviewError::RequestError,
+			LevelRequestError::RequestNonCreatedLevel => LevelReviewError::RequestError,
 			LevelRequestError::RequestsDisabled => LevelReviewError::RequestError,
 			LevelRequestError::LevelRequestExists => LevelReviewError::RequestError
 		}
