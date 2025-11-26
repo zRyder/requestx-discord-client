@@ -1,6 +1,6 @@
+use async_once_cell::OnceCell;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, DecodingKey, Validation};
-use lazy_static::lazy_static;
 use log::{debug, error, warn};
 use reqwest::{
 	header::{HeaderMap, HeaderValue},
@@ -17,6 +17,8 @@ use crate::{
 	requestx_api::auth::auth_error::AuthError
 };
 
+pub struct RequestXAuthService{}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
 	aud: u64,
@@ -24,23 +26,24 @@ struct Claims {
 	exp: usize
 }
 
-lazy_static! {
-	pub static ref JWT: Mutex<Option<String>> = Mutex::new(None);
-}
+static JWT: OnceCell<Mutex<String>> = OnceCell::new();
 
-impl JWT {
-	pub async fn get_jwt(&self) -> Result<String, AuthError> {
-		let mut jwt_lock = JWT.lock().await;
+impl RequestXAuthService {
 
-		if jwt_lock
-			.as_ref()
-			.map_or(true, |token| Self::is_expired(token))
-		{
+	pub async fn get_jwt() -> Result<String, AuthError> {
+		let jwt_lock: &Mutex<String> = JWT.get_or_try_init(async {
+			let token = Mutex::new(Self::generate_token().await?);
+			Ok(token)
+		}).await?;
+
+		let mut current_token = jwt_lock.lock().await;
+
+		if Self::is_expired(&*current_token) {
 			warn!("JWT is expired or null, generating new token");
 			match Self::generate_token().await {
-				Ok(jwt) => {
-					*jwt_lock = Some(jwt.clone());
-					Ok(jwt)
+				Ok(new_token) => {
+					*current_token = new_token.clone();
+					Ok(new_token)
 				}
 				Err(auth_error) => {
 					error!("Authentication failed: {}", auth_error);
@@ -48,7 +51,7 @@ impl JWT {
 				}
 			}
 		} else {
-			Ok(jwt_lock.as_ref().unwrap().clone())
+			Ok(current_token.clone())
 		}
 	}
 
@@ -60,7 +63,7 @@ impl JWT {
 		) {
 			token_data.claims.exp
 				< (Utc::now() - Duration::minutes(AUTH_CONFIG.token_buffer as i64)).timestamp()
-					as usize
+				as usize
 		} else {
 			true
 		}

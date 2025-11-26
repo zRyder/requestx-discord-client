@@ -2,17 +2,49 @@ use std::process;
 
 use log::error;
 use serenity::{
-	all::{ButtonStyle, ChannelId, Context, CreateMessage, GetMessages, Message, User},
+	all::{ButtonStyle, Context, CreateMessage, GetMessages, Message, User},
 	builder::CreateButton
 };
-
+use serenity::all::GenericChannelId;
 use crate::{
 	config::client_config::CLIENT_CONFIG,
 	serenity::discord::{get_init_gd_account_link_embed, get_verify_gd_account_link_embed}
 };
+use crate::serenity::discord::get_request_level_embed;
+
+pub async fn init_request_message(ctx: &Context, bot_user: &User) {
+	let request_channel = GenericChannelId::new(CLIENT_CONFIG.discord_public_channel_id);
+
+	let messages = request_channel.messages(&ctx.http, GetMessages::new())
+		.await
+		.map_err(|read_messages_error| {
+			error!(
+				"Failed to retrieve messages from request channel: {}",
+				read_messages_error
+			);
+			process::exit(1)
+		})
+		.ok()
+		.unwrap_or_default();
+
+	if !messages.is_empty() {
+		let request_message_exists =
+			messages
+				.iter()
+				.fold(false, | request_exists, message| {
+						request_exists || check_message(&message, "request".to_string())
+				});
+
+		if !request_message_exists {
+			send_request_message(&ctx, &bot_user, &request_channel).await
+		}
+	} else {
+		send_request_message(&ctx, &bot_user, &request_channel).await;
+	}
+}
 
 pub async fn init_verify_message(ctx: &Context, bot_user: &User) {
-	let verify_channel = ChannelId::new(CLIENT_CONFIG.discord_verify_channel_id);
+	let verify_channel = GenericChannelId::new(CLIENT_CONFIG.discord_verify_channel_id);
 
 	let messages = verify_channel
 		.messages(&ctx.http, GetMessages::new())
@@ -60,7 +92,28 @@ fn check_message(message: &Message, condition_string: String) -> bool {
 	false
 }
 
-async fn send_init_message(ctx: &Context, bot_user: &User, verify_channel: &ChannelId) {
+async fn send_request_message(ctx: &Context, bot_user: &User, request_channel: &GenericChannelId) {
+	let init_message = CreateMessage::new()
+		.button(
+			CreateButton::new("request-level-button")
+				.label("Request a Level")
+				.style(ButtonStyle::Success)
+		)
+		.embed(get_request_level_embed(&bot_user));
+
+	request_channel
+		.send_message(&ctx.http, init_message)
+		.await
+		.map_err(|send_init_message_error| {
+			error!(
+				"Failed to send init message to verification channel: {}",
+				send_init_message_error
+			);
+		})
+		.ok();
+}
+
+async fn send_init_message(ctx: &Context, bot_user: &User, verify_channel: &GenericChannelId) {
 	let init_message = CreateMessage::new()
 		.button(
 			CreateButton::new("init-gd-account-link-button")
@@ -81,7 +134,7 @@ async fn send_init_message(ctx: &Context, bot_user: &User, verify_channel: &Chan
 		.ok();
 }
 
-async fn send_verify_message(ctx: &Context, bot_user: &User, verify_channel: &ChannelId) {
+async fn send_verify_message(ctx: &Context, bot_user: &User, verify_channel: &GenericChannelId) {
 	let verify_message = CreateMessage::new()
 		.button(
 			CreateButton::new("verify-gd-account-link-button")

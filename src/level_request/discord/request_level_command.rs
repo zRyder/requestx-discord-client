@@ -2,11 +2,11 @@ use std::str::FromStr;
 
 use log::error;
 use serenity::{
-	all::{ChannelId, CommandInteraction, CommandOptionType},
+	all::{CommandInteraction, CommandOptionType},
 	builder::{CreateCommand, CreateCommandOption},
 	prelude::Context
 };
-
+use serenity::all::{GenericChannelId, MessageId};
 use crate::{
 	config::client_config::CLIENT_CONFIG,
 	level_request::{
@@ -20,7 +20,7 @@ use crate::{
 	}
 };
 
-pub fn register_request_level() -> CreateCommand {
+pub fn register_request_level<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("request-level")
 		.description("Request a level to Ryder")
 		.add_option(
@@ -79,7 +79,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 	let command_map = extract_command_options(&command);
 	let level_request = LevelRequest::new(
 		command_map
-			.get(&"level-id".to_string())
+			.get("level-id")
 			.unwrap()
 			.as_i64()
 			.unwrap()
@@ -87,43 +87,39 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 		command.user.id.get(),
 		RequestRating::from_str(
 			command_map
-				.get(&"request-rating".to_string())
+				.get("request-rating")
 				.unwrap()
 				.as_str()
 				.unwrap()
 		)
 		.unwrap(),
 		command_map
-			.get(&"video-link".to_string())
+			.get("video-link")
 			.unwrap()
 			.as_str()
 			.unwrap()
 			.to_string(),
 		command_map
-			.get(&"request-feedback".to_string())
+			.get("request-feedback")
 			.unwrap()
 			.as_bool()
 			.unwrap(),
 		command_map
-			.get(&"notify".to_string())
+			.get("notify")
 			.unwrap()
 			.as_bool()
 			.unwrap(),
-		None,
-		None,
-		None,
-		None
 	);
 
 	let service = LevelRequestService::new();
 	let content: &str;
 
-	match service.request_level(&level_request).await {
+	match service.level_request_service(&level_request).await {
 		Ok(requested_level) => {
 			match send_level_request_message_to_discord(&ctx, &requested_level).await {
 				Ok(message_data) => {
 					if let Err(create_thread_error) =
-						create_thread(&ctx, &command, message_data.id.get(), &requested_level).await
+						create_thread(&ctx, &command.user, message_data.id.get(), &requested_level).await
 					{
 						error!("Error creating thread: {}", create_thread_error);
 						log_error_to_discord(
@@ -176,7 +172,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 	}
 }
 
-pub fn register_edit_level_request() -> CreateCommand {
+pub fn register_edit_level_request<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("edit-level-request")
 		.description("Edits an existing level request")
 		.add_option(
@@ -227,27 +223,27 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 	let update_level_request = UpdateLevelRequest::new(
 		command.user.id.get(),
 		command_map
-			.get(&"level-id".to_string())
+			.get("level-id")
 			.unwrap()
 			.as_i64()
 			.unwrap()
 			.unsigned_abs(),
-		if let Some(request_rating) = command_map.get(&"request-rating".to_string()) {
+		if let Some(request_rating) = command_map.get("request-rating") {
 			Some(RequestRating::from_str(request_rating.as_str().unwrap()).unwrap())
 		} else {
 			None
 		},
-		if let Some(video_link) = command_map.get(&"video_link".to_string()) {
+		if let Some(video_link) = command_map.get("video_link") {
 			Some(video_link.as_str().unwrap().to_string())
 		} else {
 			None
 		},
-		if let Some(has_requested_feedback) = command_map.get(&"request-feedback".to_string()) {
+		if let Some(has_requested_feedback) = command_map.get("request-feedback") {
 			Some(has_requested_feedback.as_bool().unwrap())
 		} else {
 			None
 		},
-		if let Some(notify) = command_map.get(&"notify".to_string()) {
+		if let Some(notify) = command_map.get("notify") {
 			Some(notify.as_bool().unwrap())
 		} else {
 			None
@@ -288,7 +284,7 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 	invoke_command_ephemeral(&content, &ctx, &command).await;
 }
 
-pub fn register_delete_level_request() -> CreateCommand {
+pub fn register_delete_level_request<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("delete-level-request")
 		.description("Deletes an existing level request")
 		.add_option(
@@ -311,7 +307,7 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 
 	let command_map = extract_command_options(&command);
 	let level_id = command_map
-		.get(&"level-id".to_string())
+		.get("level-id")
 		.unwrap()
 		.as_i64()
 		.unwrap()
@@ -321,8 +317,8 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 	match service.delete_level_request(level_id).await {
 		Ok(level_request) => {
 			if let Err(delete_message_error) =
-				ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
-					.delete_message(&ctx.http, level_request.discord_message_id.unwrap())
+				GenericChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
+					.delete_message(&ctx.http, MessageId::new(level_request.discord_message_id.unwrap()), None)
 					.await
 			{
 				error!(
@@ -331,8 +327,8 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 				);
 			}
 			if let Err(delete_message_error) =
-				ChannelId::new(level_request.discord_message_id.unwrap())
-					.delete(&ctx.http)
+				GenericChannelId::new(level_request.discord_message_id.unwrap())
+					.delete(&ctx.http, None)
 					.await
 			{
 				error!(

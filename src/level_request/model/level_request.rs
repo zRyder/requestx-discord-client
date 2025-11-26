@@ -29,10 +29,6 @@ impl LevelRequest {
 		youtube_video_link: String,
 		has_requested_feedback: bool,
 		notify: bool,
-		discord_message_id: Option<u64>,
-		level_name: Option<String>,
-		level_author: Option<String>,
-		level_length: Option<LevelLength>
 	) -> Self {
 		Self {
 			level_id,
@@ -41,10 +37,10 @@ impl LevelRequest {
 			youtube_video_link,
 			has_requested_feedback,
 			notify,
-			discord_message_id,
-			level_name,
-			level_author,
-			level_length
+			discord_message_id: None,
+			level_name: None,
+			level_author: None,
+			level_length: None
 		}
 	}
 }

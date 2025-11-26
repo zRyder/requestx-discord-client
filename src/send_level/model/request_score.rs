@@ -1,6 +1,6 @@
+use std::str::FromStr;
 use std::{
 	fmt::{Display, Formatter},
-	str::FromStr
 };
 
 use serde::{Deserialize, Serialize, Serializer};

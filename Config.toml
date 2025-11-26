@@ -1,5 +1,4 @@
 [client_config]
-discord_bot_token = "{{REQUESTX_DISCORD_BOT_TOKEN}}"
 discord_app_id = "{{REQUESTX_DISCORD_APP_ID}}"
 discord_guild_id = "{{REQUESTX_DISCORD_GUILD_ID}}"
 discord_reviewer_role_id = "{{REQUESTX_DISCORD_REVIEWER_ROLE_ID}}"

@@ -32,5 +32,5 @@ pub struct RequestxApiHeaders {
 
 lazy_static! {
 	pub static ref REQUESTX_API_CONFIG: &'static RequestxApiConfig =
-		&APP_CONFIG.requestx_api_config;
+		&APP_CONFIG.get().unwrap().requestx_api_config;
 }

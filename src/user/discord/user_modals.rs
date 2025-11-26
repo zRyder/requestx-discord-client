@@ -21,14 +21,10 @@ pub async fn run_init_gd_account_link_modal(
         modal_ephemeral_content = "An error occurred while parsing the modal.";
         return invoke_modal_ephemeral(modal_ephemeral_content, &ctx, &modal_interaction).await;
     };
-    let Some(gd_username) = gd_username_input else {
-        modal_ephemeral_content = "No Geometry Dash username provided.";
-        return invoke_modal_ephemeral(modal_ephemeral_content, &ctx, &modal_interaction).await;
-    };
     let user_service = UserService::new();
     let user_gd_account_link_request = UserGDAccountLinkRequest::new(
         discord_user_id,
-        gd_username.to_owned()
+        gd_username_input.to_owned()
     );
 
     match user_service.init_gd_account_link(user_gd_account_link_request).await {
@@ -60,7 +56,7 @@ pub async fn run_init_gd_account_link_modal(
                 &modal_interaction.user,
                 "initiating GD account link",
                 &init_gd_account_link_error,
-                Some(gd_username),
+                Some(gd_username_input),
                 &ctx
             ).await;
 

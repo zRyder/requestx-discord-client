@@ -12,5 +12,5 @@ pub struct AuthConfig {
 }
 
 lazy_static! {
-	pub static ref AUTH_CONFIG: &'static AuthConfig = &APP_CONFIG.auth_config;
+	pub static ref AUTH_CONFIG: &'static AuthConfig = &APP_CONFIG.get().unwrap().auth_config;
 }

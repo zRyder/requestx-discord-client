@@ -1,16 +1,13 @@
 use log::error;
-use serenity::all::{
-	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, GuildId,
-	Member, MessageBuilder, ResolvedOption, ResolvedValue
-};
+use serenity::all::{CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, GuildId, Member, ResolvedOption, ResolvedValue, RoleId};
 
 use crate::{
-	config::{app_config::APP_CONFIG, client_config::CLIENT_CONFIG},
+	config::{client_config::CLIENT_CONFIG},
 	reviewer::service::reviewer_service::ReviewerService,
 	serenity::discord::{invoke_command_ephemeral, log_action_to_discord, log_error_to_discord}
 };
 
-pub fn register_add_reviewer() -> CreateCommand {
+pub fn register_add_reviewer<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("add-reviewer")
 		.description("Adds a new level reviewer.")
 		.add_option(
@@ -29,11 +26,10 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 	let command_options = &command.data.options();
 	let discord_server = GuildId::from(CLIENT_CONFIG.discord_guild_id);
 	let discord_ephemeral_message: String;
-	let mut log_message = MessageBuilder::new();
 	let user_to_promote: Member;
 
 	let actor_user_id = command.user.id.get();
-	if actor_user_id != APP_CONFIG.client_config.discord_bot_admin_id {
+	if actor_user_id != CLIENT_CONFIG.discord_bot_admin_id {
 		discord_ephemeral_message = "Forbidden".to_string();
 		return invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 	}
@@ -68,10 +64,9 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 			discord_ephemeral_message = "User has been promoted to reviewer".to_string();
 
 			if let Err(add_reviewer_role_error) = user_to_promote
-				.add_role(&ctx.http, CLIENT_CONFIG.discord_reviewer_role_id)
+				.add_role(&ctx.http, RoleId::new(CLIENT_CONFIG.discord_reviewer_role_id), None)
 				.await
 			{
-				log_message.push_line("But there was an error assigning the role".to_string());
 				error!(
 					"Error assigning reviewer role to member: {}",
 					add_reviewer_role_error
@@ -91,7 +86,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 	invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 }
 
-pub fn register_remove_reviewer() -> CreateCommand {
+pub fn register_remove_reviewer<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("remove-reviewer")
 		.description("Removes the current level reviewer.")
 		.add_option(
@@ -110,11 +105,10 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 	let command_options = &command.data.options();
 	let discord_server = GuildId::from(CLIENT_CONFIG.discord_guild_id);
 	let discord_ephemeral_message: String;
-	let mut log_message = MessageBuilder::new();
 	let user_to_demote: Member;
 
 	let actor_user_id = command.user.id.get();
-	if actor_user_id != APP_CONFIG.client_config.discord_bot_admin_id {
+	if actor_user_id != CLIENT_CONFIG.discord_bot_admin_id {
 		discord_ephemeral_message = "Forbidden".to_string();
 		return invoke_command_ephemeral(&discord_ephemeral_message, &ctx, &command).await;
 	}
@@ -122,8 +116,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 	if let Some(ResolvedOption {
 		value: ResolvedValue::User(user, _),
 		..
-	}) = command_options.get(0)
-	{
+	}) = command_options.get(0) {
 		user_to_demote = discord_server.member(&ctx.http, user.id).await.unwrap();
 	} else {
 		discord_ephemeral_message = "Unable to resolve user.".to_string();
@@ -149,10 +142,8 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 			discord_ephemeral_message = "User has been demoted from reviewer.".to_string();
 
 			if let Err(remove_reviewer_role_error) = user_to_demote
-				.remove_role(&ctx.http, CLIENT_CONFIG.discord_reviewer_role_id)
-				.await
-			{
-				log_message.push_line("But there was an error removing the role".to_string());
+				.remove_role(&ctx.http, RoleId::new(CLIENT_CONFIG.discord_reviewer_role_id), None)
+				.await {
 				error!(
 					"Error removing reviewer role from member: {}",
 					remove_reviewer_role_error

@@ -18,7 +18,6 @@ use crate::{
 		level_review_error::LevelReviewError
 	},
     request_manager::model::request_manager::UpdateRequestManagerRequest,
-    requestx_api::auth::auth_service::JWT,
     reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError},
     send_level::model::{
 		moderator::{SendLevelRequest, SentLevel},
@@ -26,6 +25,7 @@ use crate::{
 	},
     user::model::{discord_user::User, discord_user_error::DiscordUserError}
 };
+use crate::requestx_api::auth::auth_service::RequestXAuthService;
 use crate::user::model::discord_user::{UserGDAccountLink, UserGDAccountLinkRequest};
 use crate::user::model::discord_user_error::GDAccountLinkError;
 
@@ -793,8 +793,7 @@ impl<'a> RequestXApiClient<'a> {
 	}
 
 	async fn get_auth_header(headers: &mut HeaderMap) {
-		let _ = &JWT
-			.get_jwt()
+		let _ = &RequestXAuthService::get_jwt()
 			.await
 			.map_err(|get_jwt_error| error!("Error getting auth headers: {}", get_jwt_error))
 			.map(|jwt| {

@@ -27,7 +27,7 @@ impl<'a> LevelRequestService<'a> {
 		self.requestx_api_client.get_level_request(level_id).await
 	}
 
-	pub async fn request_level(
+	pub async fn level_request_service(
 		&self,
 		level_request: &LevelRequest
 	) -> Result<LevelRequest, LevelRequestError> {

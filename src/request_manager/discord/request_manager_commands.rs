@@ -12,7 +12,7 @@ use crate::{
 };
 use crate::serenity::discord::extract_command_options;
 
-pub fn register_request_manager() -> CreateCommand {
+pub fn register_request_manager<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("request-manager")
 		.description("Configure options for leve requests.")
 		.add_option(CreateCommandOption::new(
@@ -40,19 +40,19 @@ pub fn register_request_manager() -> CreateCommand {
 pub async fn run_request_manager(ctx: &Context, command: &CommandInteraction) {
 	let command_map = extract_command_options(&command);
 	let duration_in_minutes = if let Some(duration_in_minutes_input) = command_map
-		.get(&"request-cooldown".to_string()) {
+		.get("request-cooldown") {
 		Some(duration_in_minutes_input.as_i64().unwrap().unsigned_abs())
 	} else {None};
 	let enable_requests = if let Some(enable_requests_input) = command_map
-		.get(&"enable-requests".to_string()) {
+		.get("enable-requests") {
 		Some(enable_requests_input.as_bool().unwrap())
 	} else {None};
 	let enable_gd_requests = if let Some(enable_gd_requests_input) = command_map
-		.get(&"enable-gd-requests".to_string()) {
+		.get("enable-gd-requests") {
 		Some(enable_gd_requests_input.as_bool().unwrap())
 	} else {None};
 	let allow_non_user_created_levels = if let Some(allow_non_user_created_levels_input) = command_map
-		.get(&"allow-non-user-created-levels".to_string()) {
+		.get("allow-non-user-created-levels") {
 		Some(allow_non_user_created_levels_input.as_bool().unwrap())
 	} else {None};
 

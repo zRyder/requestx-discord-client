@@ -1,7 +1,6 @@
-use std::{collections::HashMap, env, fs, process};
-
+use std::{collections::HashMap, env, fs};
+use std::sync::OnceLock;
 use config::{Config, ConfigError, File, FileFormat};
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 use crate::config::{
@@ -15,7 +14,12 @@ pub struct AppConfig {
 	pub auth_config: AuthConfig
 }
 
-pub fn init_app_config() -> Result<AppConfig, ConfigError> { read_app_config() }
+pub fn init_app_config() -> &'static AppConfig {
+	APP_CONFIG.get_or_init(|| {
+		read_app_config()
+			.expect("Failed to read config file")
+		})
+}
 
 fn read_app_config() -> Result<AppConfig, ConfigError> {
 	let env_vars: HashMap<String, String> = env::vars().collect();
@@ -32,17 +36,10 @@ fn read_app_config() -> Result<AppConfig, ConfigError> {
 	};
 
 	let rendered = handlebars
-		.render_template(&template_string, &env_vars)
+		.render_template(template_string.as_str(), &env_vars)
 		.expect("Unable to render template");
 	settings = settings.add_source(File::from_str(rendered.as_str(), FileFormat::Toml));
 	settings.build()?.try_deserialize::<AppConfig>()
 }
 
-lazy_static! {
-	pub static ref APP_CONFIG: AppConfig = {
-		read_app_config().unwrap_or_else(|err| {
-			eprintln!("{}", err);
-			process::exit(1)
-		})
-	};
-}
+pub static APP_CONFIG: OnceLock<AppConfig> = OnceLock::new();

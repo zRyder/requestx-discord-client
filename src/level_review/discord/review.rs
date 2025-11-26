@@ -1,9 +1,5 @@
 use log::error;
-use serenity::all::{
-	ChannelId, Color, CommandInteraction, CommandOptionType, Context, CreateCommand,
-	CreateCommandOption, CreateEmbed, CreateMessage, EditMessage, Mentionable, Message,
-	MessageBuilder, UserId
-};
+use serenity::all::{Color, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, CreateEmbed, CreateMessage, EditMessage, GenericChannelId, GuildId, Mentionable, Message, MessageBuilder, MessageId, RoleId, UserId};
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
@@ -15,7 +11,7 @@ use crate::{
 	serenity::discord::{invoke_command_ephemeral, log_to_discord}
 };
 
-pub fn register_review() -> CreateCommand {
+pub fn register_review<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("review")
 		.description("Submit a review for the given level")
 		.add_option(
@@ -42,8 +38,8 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 	if !command_user
 		.has_role(
 			&ctx.http,
-			CLIENT_CONFIG.discord_guild_id,
-			CLIENT_CONFIG.discord_reviewer_role_id
+			GuildId::new(CLIENT_CONFIG.discord_guild_id),
+			RoleId::new(CLIENT_CONFIG.discord_reviewer_role_id)
 		)
 		.await
 		.unwrap()
@@ -122,13 +118,13 @@ fn build_log_message(
 	level_review: &LevelReview
 ) -> String {
 	let mut log_message = MessageBuilder::new();
-	log_message.push_bold(format!("{} ", command.user.name));
-	log_message.push_line(format!(
+	log_message = log_message.push_bold(format!("{} ", command.user.name).as_str());
+	log_message = log_message.push_line(format!(
 		"({}) left a review on level request ID: {}",
 		command.user.id, level_id
-	));
-	log_message.push_codeblock(
-		format!("{}: {}", level_id, &level_review.review_contents),
+	).as_str());
+	log_message = log_message.push_codeblock(
+		format!("{}: {}", level_id, &level_review.review_contents).as_str(),
 		Some("rust")
 	);
 	log_message.build()
@@ -142,16 +138,16 @@ async fn send_level_review_message<'a>(
 	level_review: &LevelReview
 ) {
 	let discord_ephemeral_message;
-	let (mut review_message, level_review_embed) =
+	let (review_message, level_review_embed) =
 		build_level_review_message(command, &level_review, &reviewed_level_request);
 
 	let reviewed_level_request_thread =
-		ChannelId::new(reviewed_level_request.discord_message_id.unwrap());
+		GenericChannelId::new(reviewed_level_request.discord_message_id.unwrap());
 	if level_review.discord_message_id.is_some() {
 		if let Err(edit_message_error) = reviewed_level_request_thread
 			.edit_message(
 				&ctx.http,
-				level_review.discord_message_id.unwrap(),
+				MessageId::new(level_review.discord_message_id.unwrap()),
 				EditMessage::new()
 					.content(&review_message.build())
 					.embed(level_review_embed)
@@ -205,25 +201,25 @@ async fn update_level_review_message_id<'a>(
 	}
 }
 
-fn build_level_review_message(
+fn build_level_review_message<'a>(
 	command: &CommandInteraction,
-	level_review: &LevelReview,
+	level_review: &'a LevelReview,
 	reviewed_level_request: &LevelRequest
-) -> (MessageBuilder, CreateEmbed) {
+) -> (MessageBuilder, CreateEmbed<'a>) {
 	let mut review_message = MessageBuilder::new();
 
 	if reviewed_level_request.notify {
-		review_message.push_line(format!(
+		review_message = review_message.push_line(format!(
 			"{}",
 			UserId::new(reviewed_level_request.discord_user_id).mention()
-		));
-		review_message.push_line("");
+		).as_str());
+		review_message = review_message.push_line("");
 	}
 
-	review_message.push_bold_line(format!(
+	review_message = review_message.push_bold_line(format!(
 		"Your level has been reviewed by {}",
 		command.user.id.mention()
-	));
+	).as_str());
 
 	let mut level_review_embed = CreateEmbed::new().color(Color::BLUE);
 	for paragraph in level_review

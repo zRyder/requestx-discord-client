@@ -11,7 +11,7 @@ use serenity::{
 	},
 	Error as SerenityError
 };
-use serenity::all::{ComponentInteraction, ModalInteraction};
+use serenity::all::{ComponentInteraction, GenericChannelId, MessageId, ModalInteraction};
 use tokio::{sync::mpsc, task};
 
 use crate::{
@@ -21,13 +21,13 @@ use crate::{
 
 pub fn extract_command_options(
 	command: &CommandInteraction
-) -> HashMap<&String, &CommandDataOptionValue> {
+) -> HashMap<&str, &CommandDataOptionValue> {
 	command
 		.data
 		.options
 		.iter()
-		.map(|data| (&data.name, &data.value))
-		.collect::<HashMap<&String, &CommandDataOptionValue>>()
+		.map(|data| (data.name.as_str(), &data.value))
+		.collect::<HashMap<&str, &CommandDataOptionValue>>()
 }
 
 pub async fn log_action_to_discord(
@@ -37,10 +37,10 @@ pub async fn log_action_to_discord(
 	ctx: &Context
 ) {
 	let mut log_message = MessageBuilder::new();
-	log_message.push_bold(format!("{} ", user.name));
-	log_message.push_line(format!("({}) has {}", user.id, operation_message));
+	log_message = log_message.push_bold(format!("{} ", user.name).as_str());
+	log_message = log_message.push_line(format!("({}) has {}", user.id, operation_message).as_str());
 	if let Some(extra_log_ctx) = extra_log_ctx {
-		log_message.push_codeblock(format!("{:?}", &extra_log_ctx), Some("rust"));
+		log_message = log_message.push_codeblock(format!("{:?}", &extra_log_ctx).as_str(), Some("rust"));
 	}
 
 	log_to_discord(ctx.clone(), log_message.build()).await
@@ -54,14 +54,14 @@ pub async fn log_error_to_discord(
 	ctx: &Context
 ) {
 	let mut log_message = MessageBuilder::new();
-	log_message.push_bold(format!("{} ", user.name));
-	log_message.push_line(format!(
+	log_message = log_message.push_bold(format!("{} ", user.name).as_str());
+	log_message = log_message.push_line(format!(
 		"({}) cause an error when {}",
 		user.id, operation_message
-	));
-	log_message.push_codeblock(format!("{:?}", error), Some("rust"));
+	).as_str());
+	log_message = log_message.push_codeblock(format!("{:?}", error).as_str(), Some("rust"));
 	if let Some(extra_log_ctx) = extra_log_ctx {
-		log_message.push_codeblock(format!("{:?}", extra_log_ctx), Some("rust"));
+		log_message = log_message.push_codeblock(format!("{:?}", extra_log_ctx).as_str(), Some("rust"));
 	};
 
 	log_to_discord(ctx.clone(), log_message.build()).await
@@ -69,7 +69,7 @@ pub async fn log_error_to_discord(
 
 pub async fn create_thread(
 	ctx: &Context,
-	command: &CommandInteraction,
+	user: &User,
 	message_id: u64,
 	level_request: &LevelRequest
 ) -> Result<u64, SerenityError> {
@@ -77,11 +77,11 @@ pub async fn create_thread(
 		ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 			.create_thread_from_message(
 				&ctx.http,
-				message_id,
+				MessageId::new(message_id),
 				CreateThread::new(format!("\"{}\" ({})", level_name, level_request.level_id))
 					.audit_log_reason(&*format!(
-						"Created via {} command by: {} {}",
-						command.data.name, command.user.name, command.user.id,
+						"Created via command by: {} {}",
+						user.name, user.id,
 					))
 					.invitable(false)
 			)
@@ -90,11 +90,11 @@ pub async fn create_thread(
 		ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 			.create_thread_from_message(
 				&ctx.http,
-				message_id,
+				MessageId::new(message_id),
 				CreateThread::new(format!("{}", level_request.level_id))
 					.audit_log_reason(&*format!(
-						"Created via {} command by: {} {}",
-						command.data.name, command.user.name, command.user.id,
+						"Created via command by: {} {}",
+						user.name, user.id,
 					))
 					.invitable(false)
 			)
@@ -110,11 +110,10 @@ pub async fn send_level_request_message_to_discord(
 ) -> serenity::Result<Message> {
 	let mut request_message = MessageBuilder::new();
 	if let (Some(level_name), Some(level_creator_name)) =
-		(&level_request.level_name, &level_request.level_author)
-	{
-		request_message.push_line(format!("\"{}\" by {}", level_name, level_creator_name));
+		(&level_request.level_name, &level_request.level_author) {
+		request_message = request_message.push_line(format!("\"{}\" by {}", level_name, level_creator_name).as_str());
 	}
-	request_message.push_line(format!("{}", &level_request.level_id));
+	request_message = request_message.push_line(format!("{}", &level_request.level_id).as_str());
 	if let Some(level_length) = level_request.level_length {
 		let level_rating_str = level_request.request_rating.to_string();
 		let slice: Vec<&str> = level_rating_str.split(&[' ', '/'][..]).collect();
@@ -137,27 +136,27 @@ pub async fn send_level_request_message_to_discord(
 				);
 			}
 		}
-		request_message.push_line(format!("Requested {}", output_str));
+		request_message = request_message.push_line(format!("Requested {}", output_str).as_str());
 	} else {
-		request_message.push_line(format!("Requested {}", level_request.request_rating));
+		request_message = request_message.push_line(format!("Requested {}", level_request.request_rating).as_str());
 	}
 	if level_request.has_requested_feedback {
-		request_message.push_line("Feedback has been requested!");
+		request_message = request_message.push_line("Feedback has been requested!");
 	}
-	request_message.push_line(format!("{}", &level_request.youtube_video_link));
+	request_message = request_message.push_line(format!("{}", &level_request.youtube_video_link).as_str());
 
 	match &level_request.discord_message_id {
 		Some(discord_message_id) => {
-			ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
+			GenericChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 				.edit_message(
 					&ctx.http,
-					*discord_message_id,
+					MessageId::new(*discord_message_id),
 					EditMessage::new().content(request_message.build())
 				)
 				.await
 		}
 		None => {
-			ChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
+			GenericChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
 				.send_message(
 					&ctx.http,
 					CreateMessage::new().content(request_message.build())
@@ -199,10 +198,9 @@ pub async fn invoke_component_ephemeral(content: &str, ctx: &Context, component:
 
 async fn discord_log(mut rx: mpsc::Receiver<(String, Context)>) {
 	while let Some(data) = rx.recv().await {
-		if let Err(logger_error) = ChannelId::new(CLIENT_CONFIG.discord_log_channel_id)
+		if let Err(logger_error) = GenericChannelId::new(CLIENT_CONFIG.discord_log_channel_id)
 			.say(&data.1.http, &data.0)
-			.await
-		{
+			.await {
 			error!(
 				"Unable to log event {} to Discord: {}",
 				data.0, logger_error
@@ -218,7 +216,28 @@ pub async fn log_to_discord(ctx: Context, log_text: String) {
 	drop(tx);
 }
 
-pub fn get_init_gd_account_link_embed(bot_user: &User) -> CreateEmbed {
+pub fn get_request_level_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
+	let mut request_level_message_embed = CreateEmbed::new();
+
+	request_level_message_embed = request_level_message_embed.footer(CreateEmbedFooter::new("request"));
+	request_level_message_embed = request_level_message_embed.author(CreateEmbedAuthor::from(bot_user.clone()));
+	request_level_message_embed = request_level_message_embed.timestamp(Utc::now());
+
+	request_level_message_embed = request_level_message_embed.field(
+		"",
+		format!(
+			"In order to make a level request, press the button below!\
+			\n\n\
+			For more help, check <#{}>",
+			1311023368493072514u64
+		),
+		false,
+	);
+
+	request_level_message_embed
+}
+
+pub fn get_init_gd_account_link_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
 	let mut init_message_embed = CreateEmbed::new();
 
 	init_message_embed = init_message_embed.footer(CreateEmbedFooter::new("init"));
@@ -245,7 +264,7 @@ pub fn get_init_gd_account_link_embed(bot_user: &User) -> CreateEmbed {
 	init_message_embed
 }
 
-pub fn get_verify_gd_account_link_embed(bot_user: &User) -> CreateEmbed {
+pub fn get_verify_gd_account_link_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
 	let mut init_message_embed = CreateEmbed::new();
 
 	init_message_embed = init_message_embed.footer(CreateEmbedFooter::new("verify"));
