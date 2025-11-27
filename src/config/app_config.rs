@@ -1,24 +1,21 @@
-use std::{collections::HashMap, env, fs};
-use std::sync::OnceLock;
 use config::{Config, ConfigError, File, FileFormat};
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
+use std::{collections::HashMap, env, fs};
 
 use crate::config::{
-	auth_config::AuthConfig, client_config::ClientConfig, requestx_api_config::RequestxApiConfig
+	auth_config::AuthConfig, client_config::ClientConfig, requestx_api_config::RequestxApiConfig,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AppConfig {
 	pub client_config: ClientConfig,
 	pub requestx_api_config: RequestxApiConfig,
-	pub auth_config: AuthConfig
+	pub auth_config: AuthConfig,
 }
 
 pub fn init_app_config() -> &'static AppConfig {
-	APP_CONFIG.get_or_init(|| {
-		read_app_config()
-			.expect("Failed to read config file")
-		})
+	APP_CONFIG.get_or_init(|| read_app_config().expect("Failed to read config file"))
 }
 
 fn read_app_config() -> Result<AppConfig, ConfigError> {

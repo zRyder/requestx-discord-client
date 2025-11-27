@@ -8,7 +8,7 @@ pub struct AuthConfig {
 	pub secret_token: String,
 	pub access_token: String,
 	pub auth_header_name: String,
-	pub token_buffer: i8
+	pub token_buffer: i8,
 }
 
 lazy_static! {

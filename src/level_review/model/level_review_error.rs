@@ -1,6 +1,6 @@
 use std::{
 	error::Error,
-	fmt::{Display, Formatter}
+	fmt::{Display, Formatter},
 };
 
 use crate::level_request::model::level_request_error::{ErrorMessage, LevelRequestError};
@@ -12,7 +12,7 @@ pub enum LevelReviewError {
 	DiscordFormattingError(usize, String),
 	UserHasNotRequestedFeedback,
 	SerializeError,
-	RequestXApiError(ErrorMessage)
+	RequestXApiError(ErrorMessage),
 }
 
 impl Display for LevelReviewError {
@@ -58,7 +58,7 @@ impl From<LevelRequestError> for LevelReviewError {
 			LevelRequestError::UserOnCooldown(_) => LevelReviewError::RequestError,
 			LevelRequestError::RequestNonCreatedLevel => LevelReviewError::RequestError,
 			LevelRequestError::RequestsDisabled => LevelReviewError::RequestError,
-			LevelRequestError::LevelRequestExists => LevelReviewError::RequestError
+			LevelRequestError::LevelRequestExists => LevelReviewError::RequestError,
 		}
 	}
 }

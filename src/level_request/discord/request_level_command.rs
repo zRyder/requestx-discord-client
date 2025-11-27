@@ -1,23 +1,23 @@
 use std::str::FromStr;
 
-use log::error;
-use serenity::{
-	all::{CommandInteraction, CommandOptionType},
-	builder::{CreateCommand, CreateCommandOption},
-	prelude::Context
-};
-use serenity::all::{GenericChannelId, MessageId};
 use crate::{
 	config::client_config::CLIENT_CONFIG,
 	level_request::{
 		model::level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
-		service::level_request_service::LevelRequestService
+		service::level_request_service::LevelRequestService,
 	},
 	send_level::model::request_score::RequestRating,
 	serenity::discord::{
 		create_thread, extract_command_options, invoke_command_ephemeral, log_action_to_discord,
-		log_error_to_discord, send_level_request_message_to_discord
-	}
+		log_error_to_discord, send_level_request_message_to_discord,
+	},
+};
+use log::error;
+use serenity::all::{GenericChannelId, MessageId};
+use serenity::{
+	all::{CommandInteraction, CommandOptionType},
+	builder::{CreateCommand, CreateCommandOption},
+	prelude::Context,
 };
 
 pub fn register_request_level<'a>() -> CreateCommand<'a> {
@@ -27,15 +27,15 @@ pub fn register_request_level<'a>() -> CreateCommand<'a> {
 			CreateCommandOption::new(
 				CommandOptionType::Integer,
 				"level-id",
-				"The ID of the level to request."
+				"The ID of the level to request.",
 			)
-			.required(true)
+			.required(true),
 		)
 		.add_option(
 			CreateCommandOption::new(
 				CommandOptionType::String,
 				"request-rating",
-				"The amount of Stars/Moons requested."
+				"The amount of Stars/Moons requested.",
 			)
 			.required(true)
 			.add_string_choice("Auto, 1 Star/Moon", "One")
@@ -47,31 +47,31 @@ pub fn register_request_level<'a>() -> CreateCommand<'a> {
 			.add_string_choice("Harder, 7 Stars/Moons", "Seven")
 			.add_string_choice("Insane, 8 Stars/Moons", "Eight")
 			.add_string_choice("Insane, 9 Stars/Moons", "Nine")
-			.add_string_choice("Demon, 10 Stars/Moons", "Ten")
+			.add_string_choice("Demon, 10 Stars/Moons", "Ten"),
 		)
 		.add_option(
 			CreateCommandOption::new(
 				CommandOptionType::String,
 				"video-link",
-				"A link to the video showcasing the requested level."
+				"A link to the video showcasing the requested level.",
 			)
-			.required(true)
+			.required(true),
 		)
 		.add_option(
 			CreateCommandOption::new(
 				CommandOptionType::Boolean,
 				"request-feedback",
-				"Request for reviewers to potentially review your request."
+				"Request for reviewers to potentially review your request.",
 			)
-			.required(true)
+			.required(true),
 		)
 		.add_option(
 			CreateCommandOption::new(
 				CommandOptionType::Boolean,
 				"notify",
-				"Notify when a review has been made or if the level has been sent."
+				"Notify when a review has been made or if the level has been sent.",
 			)
-			.required(true)
+			.required(true),
 		)
 }
 
@@ -85,14 +85,8 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			.unwrap()
 			.unsigned_abs(),
 		command.user.id.get(),
-		RequestRating::from_str(
-			command_map
-				.get("request-rating")
-				.unwrap()
-				.as_str()
-				.unwrap()
-		)
-		.unwrap(),
+		RequestRating::from_str(command_map.get("request-rating").unwrap().as_str().unwrap())
+			.unwrap(),
 		command_map
 			.get("video-link")
 			.unwrap()
@@ -104,11 +98,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			.unwrap()
 			.as_bool()
 			.unwrap(),
-		command_map
-			.get("notify")
-			.unwrap()
-			.as_bool()
-			.unwrap(),
+		command_map.get("notify").unwrap().as_bool().unwrap(),
 	);
 
 	let service = LevelRequestService::new();
@@ -119,7 +109,8 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 			match send_level_request_message_to_discord(&ctx, &requested_level).await {
 				Ok(message_data) => {
 					if let Err(create_thread_error) =
-						create_thread(&ctx, &command.user, message_data.id.get(), &requested_level).await
+						create_thread(&ctx, &command.user, message_data.id.get(), &requested_level)
+							.await
 					{
 						error!("Error creating thread: {}", create_thread_error);
 						log_error_to_discord(
@@ -127,14 +118,14 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 							"creating thread for requested level",
 							&create_thread_error,
 							Some(&requested_level),
-							&ctx
+							&ctx,
 						)
 						.await;
 					}
 
 					let update_request_message_id = UpdateLevelRequestMessageId {
 						level_id: requested_level.level_id,
-						discord_message_id: message_data.id.get()
+						discord_message_id: message_data.id.get(),
 					};
 					if let Err(error) = service
 						.update_request_message_id(update_request_message_id)
@@ -154,7 +145,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 				&command.user,
 				"requested a level",
 				Some(&requested_level),
-				&ctx
+				&ctx,
 			)
 			.await;
 		}
@@ -165,7 +156,7 @@ pub async fn run_request_level(ctx: &Context, command: &CommandInteraction) {
 				"requesting a level",
 				&request_level_error,
 				None,
-				&ctx
+				&ctx,
 			)
 			.await;
 		}
@@ -179,15 +170,15 @@ pub fn register_edit_level_request<'a>() -> CreateCommand<'a> {
 			CreateCommandOption::new(
 				CommandOptionType::Integer,
 				"level-id",
-				"The level ID of the level request to edit."
+				"The level ID of the level request to edit.",
 			)
-			.required(true)
+			.required(true),
 		)
 		.add_option(
 			CreateCommandOption::new(
 				CommandOptionType::String,
 				"request-rating",
-				"The amount of Stars/Moons requested."
+				"The amount of Stars/Moons requested.",
 			)
 			.add_string_choice("Auto, 1 Star/Moon", "One")
 			.add_string_choice("Easy, 2 Stars/Moons", "Two")
@@ -198,22 +189,22 @@ pub fn register_edit_level_request<'a>() -> CreateCommand<'a> {
 			.add_string_choice("Harder, 7 Stars/Moons", "Seven")
 			.add_string_choice("Insane, 8 Stars/Moons", "Eight")
 			.add_string_choice("Insane, 9 Stars/Moons", "Nine")
-			.add_string_choice("Demon, 10 Stars/Moons", "Ten")
+			.add_string_choice("Demon, 10 Stars/Moons", "Ten"),
 		)
 		.add_option(CreateCommandOption::new(
 			CommandOptionType::String,
 			"video-link",
-			"A link to the video showcasing the requested level."
+			"A link to the video showcasing the requested level.",
 		))
 		.add_option(CreateCommandOption::new(
 			CommandOptionType::Boolean,
 			"request-feedback",
-			"Request for reviewers to potentially review your request."
+			"Request for reviewers to potentially review your request.",
 		))
 		.add_option(CreateCommandOption::new(
 			CommandOptionType::Boolean,
 			"notify",
-			"Notify when a review has been made or if the level has been sent."
+			"Notify when a review has been made or if the level has been sent.",
 		))
 }
 
@@ -247,7 +238,7 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 			Some(notify.as_bool().unwrap())
 		} else {
 			None
-		}
+		},
 	);
 	let service = LevelRequestService::new();
 
@@ -267,7 +258,7 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 					&command.user,
 					"edited a level request",
 					Some(&level_request_data),
-					&ctx
+					&ctx,
 				)
 				.await;
 
@@ -291,9 +282,9 @@ pub fn register_delete_level_request<'a>() -> CreateCommand<'a> {
 			CreateCommandOption::new(
 				CommandOptionType::Integer,
 				"level-id",
-				"The level ID of the level request to delete."
+				"The level ID of the level request to delete.",
 			)
-			.required(true)
+			.required(true),
 		)
 }
 
@@ -318,7 +309,11 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 		Ok(level_request) => {
 			if let Err(delete_message_error) =
 				GenericChannelId::new(CLIENT_CONFIG.discord_requests_channel_id)
-					.delete_message(&ctx.http, MessageId::new(level_request.discord_message_id.unwrap()), None)
+					.delete_message(
+						&ctx.http,
+						MessageId::new(level_request.discord_message_id.unwrap()),
+						None,
+					)
 					.await
 			{
 				error!(
@@ -340,7 +335,7 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 				&command.user,
 				"deleted a level request",
 				Some(&level_request),
-				&ctx
+				&ctx,
 			)
 			.await;
 
@@ -353,7 +348,7 @@ pub async fn run_delete_level_request(ctx: &Context, command: &CommandInteractio
 				"deleting a level request",
 				&error,
 				None,
-				&ctx
+				&ctx,
 			)
 			.await;
 		}

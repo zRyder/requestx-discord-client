@@ -1,20 +1,24 @@
 use std::str::FromStr;
 
 use log::error;
-use serenity::all::{CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, GenericChannelId, MessageBuilder};
+use serenity::all::{
+	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+	GenericChannelId, MessageBuilder,
+};
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
 	send_level::{
 		model::{
 			moderator::{SendLevelRequest, SentLevel, SuggestedRating, SuggestedScore},
-			request_score::LevelLength
+			request_score::LevelLength,
 		},
-		service::send_level_service::ModeratorService
+		service::send_level_service::ModeratorService,
 	},
 	serenity::discord::{
-		extract_command_options, invoke_command_ephemeral, log_action_to_discord, log_error_to_discord
-	}
+		extract_command_options, invoke_command_ephemeral, log_action_to_discord,
+		log_error_to_discord,
+	},
 };
 
 pub fn register_send_level<'a>() -> CreateCommand<'a> {
@@ -24,15 +28,15 @@ pub fn register_send_level<'a>() -> CreateCommand<'a> {
 			CreateCommandOption::new(
 				CommandOptionType::Integer,
 				"level-id",
-				"The level ID of the request to send"
+				"The level ID of the request to send",
 			)
-			.required(true)
+			.required(true),
 		)
 		.add_option(
 			CreateCommandOption::new(
 				CommandOptionType::String,
 				"suggested-score",
-				"The suggested amount of Stars/Moons this level should reward"
+				"The suggested amount of Stars/Moons this level should reward",
 			)
 			.required(true)
 			.add_string_choice("No Send", "NoRate")
@@ -46,20 +50,20 @@ pub fn register_send_level<'a>() -> CreateCommand<'a> {
 			.add_string_choice("Harder, 7 Stars/Moons", "Seven")
 			.add_string_choice("Insane, 8 Stars/Moons", "Eight")
 			.add_string_choice("Insane, 9 Stars/Moons", "Nine")
-			.add_string_choice("Demon, 10 Stars/Moons", "Ten")
+			.add_string_choice("Demon, 10 Stars/Moons", "Ten"),
 		)
 		.add_option(
 			CreateCommandOption::new(
 				CommandOptionType::String,
 				"suggested-rating",
-				"The suggested Feature score this level should have"
+				"The suggested Feature score this level should have",
 			)
 			.required(true)
 			.add_string_choice("Rate", "Rate")
 			.add_string_choice("Feature", "Feature")
 			.add_string_choice("Epic", "Epic")
 			.add_string_choice("Legendary", "Legendary")
-			.add_string_choice("Mythic", "Mythic")
+			.add_string_choice("Mythic", "Mythic"),
 		)
 }
 
@@ -84,7 +88,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 			.get("suggested-score")
 			.unwrap()
 			.as_str()
-			.unwrap()
+			.unwrap(),
 	)
 	.unwrap();
 	let suggested_rating = SuggestedRating::from_str(
@@ -92,7 +96,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 			.get("suggested-rating")
 			.unwrap()
 			.as_str()
-			.unwrap()
+			.unwrap(),
 	)
 	.unwrap();
 	let send_level_request = SendLevelRequest::new(level_id, suggested_score, suggested_rating);
@@ -100,19 +104,19 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 
 	match service.send_level(send_level_request).await {
 		Ok(sent_level) => {
-			let send_level_message =
-				format_public_discord_message(&suggested_score, &suggested_rating, &sent_level);
+			let send_level_message = format_public_discord_message(&sent_level);
 
 			match GenericChannelId::new(sent_level.level_request.discord_message_id.unwrap())
 				.say(&ctx.http, &send_level_message.build())
-				.await {
+				.await
+			{
 				Ok(_msg) => {
 					content = "Level has been sent!".to_string();
 					log_action_to_discord(
 						&command.user,
 						"sent a level to RobTop",
 						Some(&sent_level),
-						&ctx
+						&ctx,
 					)
 					.await;
 				}
@@ -129,7 +133,7 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 				"sending level to RobTop",
 				&send_level_error,
 				None,
-				&ctx
+				&ctx,
 			)
 			.await;
 		}
@@ -138,37 +142,57 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 	invoke_command_ephemeral(&content, &ctx, &command).await;
 }
 
-fn format_public_discord_message(
-	suggested_score: &SuggestedScore,
-	suggested_rating: &SuggestedRating,
-	sent_level: &SentLevel
-) -> MessageBuilder {
+fn format_public_discord_message(sent_level: &SentLevel) -> MessageBuilder {
 	let mut send_level_message = MessageBuilder::new();
 
-	if let Some(ref level_name) = sent_level.level_request.level_name {
-		send_level_message = send_level_message.push(format!("\"{}\" ", level_name).as_str());
+	send_level_message = send_level_message.push(build_level_name_string(&sent_level).as_str());
+	send_level_message = send_level_message.push(build_sent_for_string(&sent_level).as_str());
+
+	send_level_message
+}
+
+fn build_level_name_string(sent_level: &SentLevel) -> String {
+	let mut level_name_string = String::new();
+	if let Some(gd_level_info) = &sent_level.level_request.gd_level_info {
+		level_name_string.push_str(&format!("\"{}\" ", &gd_level_info.level_name));
 	} else {
-		send_level_message = send_level_message.push("The level ");
+		level_name_string.push_str("The level ");
 	}
+
+	level_name_string
+}
+
+fn build_sent_for_string(sent_level: &SentLevel) -> String {
+	let mut level_sent_for_string = MessageBuilder::new();
 	if sent_level.moderator_data.suggested_score == SuggestedScore::NoRate {
-		send_level_message = send_level_message.push_bold("has not ");
-		send_level_message = send_level_message.push("been sent...");
+		level_sent_for_string = level_sent_for_string.push_bold("has not ");
+		level_sent_for_string = level_sent_for_string.push("been sent...");
 	} else if sent_level.moderator_data.suggested_score == SuggestedScore::Rated {
-		send_level_message = send_level_message.push_bold("has already ");
-		send_level_message = send_level_message.push("been rated.");
+		level_sent_for_string = level_sent_for_string.push_bold("has already ");
+		level_sent_for_string = level_sent_for_string.push("been rated.");
 	} else {
-		send_level_message = send_level_message.push_bold("has ");
-		send_level_message = send_level_message.push("been sent for ");
-		send_level_message = send_level_message.push_bold(format!(
+		level_sent_for_string = level_sent_for_string.push_bold("has ");
+		level_sent_for_string = level_sent_for_string.push("been sent for ");
+		level_sent_for_string =
+			level_sent_for_string.push(build_sent_for_with_rating_string(&sent_level).as_str())
+	}
+
+	level_sent_for_string.build()
+}
+
+fn build_sent_for_with_rating_string(sent_level: &SentLevel) -> String {
+	let mut level_sent_for_with_rating_string = MessageBuilder::new();
+	level_sent_for_with_rating_string = level_sent_for_with_rating_string.push_bold(
+		format!(
 			"{}, {} {}",
-			serde_json::to_string(&suggested_rating)
+			serde_json::to_string(&sent_level.moderator_data.suggested_rating)
 				.unwrap()
 				.replace("\"", ""),
-			serde_json::to_string(&suggested_score)
+			serde_json::to_string(&sent_level.moderator_data.suggested_score)
 				.unwrap()
 				.replace("\"", ""),
-			if let Some(level_length) = sent_level.level_request.level_length {
-				if level_length == LevelLength::Platformer {
+			if let Some(gd_level_info) = &sent_level.level_request.gd_level_info {
+				if gd_level_info.level_length == LevelLength::Platformer {
 					"Moons!"
 				} else {
 					"Stars!"
@@ -176,8 +200,9 @@ fn format_public_discord_message(
 			} else {
 				"Stars/Moons!"
 			}
-		).as_str());
-	}
+		)
+		.as_str(),
+	);
 
-	send_level_message
+	level_sent_for_with_rating_string.build()
 }

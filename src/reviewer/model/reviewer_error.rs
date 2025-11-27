@@ -1,13 +1,13 @@
 use std::{
 	error::Error,
-	fmt::{Display, Formatter}
+	fmt::{Display, Formatter},
 };
 
 #[derive(Debug, PartialEq)]
 pub enum ReviewerError {
 	RequestError,
 	SerializeError,
-	RequestXApiError
+	RequestXApiError,
 }
 
 impl Display for ReviewerError {

@@ -1,10 +1,13 @@
 use log::error;
-use serenity::all::{CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, GuildId, Member, ResolvedOption, ResolvedValue, RoleId};
+use serenity::all::{
+	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, GuildId,
+	Member, ResolvedOption, ResolvedValue, RoleId,
+};
 
 use crate::{
-	config::{client_config::CLIENT_CONFIG},
+	config::client_config::CLIENT_CONFIG,
 	reviewer::service::reviewer_service::ReviewerService,
-	serenity::discord::{invoke_command_ephemeral, log_action_to_discord, log_error_to_discord}
+	serenity::discord::{invoke_command_ephemeral, log_action_to_discord, log_error_to_discord},
 };
 
 pub fn register_add_reviewer<'a>() -> CreateCommand<'a> {
@@ -14,9 +17,9 @@ pub fn register_add_reviewer<'a>() -> CreateCommand<'a> {
 			CreateCommandOption::new(
 				CommandOptionType::User,
 				"user",
-				"The user to grant the role of reviewer."
+				"The user to grant the role of reviewer.",
 			)
-			.required(true)
+			.required(true),
 		)
 }
 
@@ -56,7 +59,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 				"promoting user to reviewer",
 				&create_reviewer_error,
 				None,
-				&ctx
+				&ctx,
 			)
 			.await;
 		}
@@ -64,7 +67,11 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 			discord_ephemeral_message = "User has been promoted to reviewer".to_string();
 
 			if let Err(add_reviewer_role_error) = user_to_promote
-				.add_role(&ctx.http, RoleId::new(CLIENT_CONFIG.discord_reviewer_role_id), None)
+				.add_role(
+					&ctx.http,
+					RoleId::new(CLIENT_CONFIG.discord_reviewer_role_id),
+					None,
+				)
 				.await
 			{
 				error!(
@@ -77,7 +84,7 @@ pub async fn run_add_reviewer(ctx: &Context, command: &CommandInteraction) {
 				&command.user,
 				"promoted user to reviewer",
 				Some(&user_to_promote.user.id.get()),
-				&ctx
+				&ctx,
 			)
 			.await;
 		}
@@ -93,9 +100,9 @@ pub fn register_remove_reviewer<'a>() -> CreateCommand<'a> {
 			CreateCommandOption::new(
 				CommandOptionType::User,
 				"user",
-				"The user to revoke the role of reviewer."
+				"The user to revoke the role of reviewer.",
 			)
-			.required(true)
+			.required(true),
 		)
 }
 
@@ -116,7 +123,8 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 	if let Some(ResolvedOption {
 		value: ResolvedValue::User(user, _),
 		..
-	}) = command_options.get(0) {
+	}) = command_options.get(0)
+	{
 		user_to_demote = discord_server.member(&ctx.http, user.id).await.unwrap();
 	} else {
 		discord_ephemeral_message = "Unable to resolve user.".to_string();
@@ -134,7 +142,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 				"demoting user from reviewer",
 				&remove_reviewer_error,
 				Some(&user_to_demote.user.id.get()),
-				&ctx
+				&ctx,
 			)
 			.await;
 		}
@@ -142,8 +150,13 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 			discord_ephemeral_message = "User has been demoted from reviewer.".to_string();
 
 			if let Err(remove_reviewer_role_error) = user_to_demote
-				.remove_role(&ctx.http, RoleId::new(CLIENT_CONFIG.discord_reviewer_role_id), None)
-				.await {
+				.remove_role(
+					&ctx.http,
+					RoleId::new(CLIENT_CONFIG.discord_reviewer_role_id),
+					None,
+				)
+				.await
+			{
 				error!(
 					"Error removing reviewer role from member: {}",
 					remove_reviewer_role_error
@@ -154,7 +167,7 @@ pub async fn run_remove_reviewer(ctx: &Context, command: &CommandInteraction) {
 				&command.user,
 				"demoted user from reviewer",
 				Some(&user_to_demote.user.id.get()),
-				&ctx
+				&ctx,
 			)
 			.await;
 		}

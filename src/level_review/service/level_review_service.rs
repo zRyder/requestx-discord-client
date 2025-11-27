@@ -5,13 +5,13 @@ use crate::{
 	level_request::model::level_request::LevelRequest,
 	level_review::model::{
 		level_review::{LevelReview, UpdateLevelReviewMessageId},
-		level_review_error::LevelReviewError
+		level_review_error::LevelReviewError,
 	},
-	requestx_api::requestx_api_client::RequestXApiClient
+	requestx_api::requestx_api_client::RequestXApiClient,
 };
 
 pub struct LevelReviewService<'a> {
-	requestx_api_client: RequestXApiClient<'a>
+	requestx_api_client: RequestXApiClient<'a>,
 }
 
 const MAX_REVIEW_CHARACTERS: usize = 4000;
@@ -19,14 +19,14 @@ const MAX_REVIEW_CHARACTERS: usize = 4000;
 impl<'a> LevelReviewService<'a> {
 	pub fn new() -> Self {
 		LevelReviewService {
-			requestx_api_client: RequestXApiClient::new()
+			requestx_api_client: RequestXApiClient::new(),
 		}
 	}
 
 	pub async fn get_level_review(
 		&self,
 		reviewer_discord_id: u64,
-		level_id: u64
+		level_id: u64,
 	) -> Result<Option<LevelReview>, LevelReviewError> {
 		self.requestx_api_client
 			.get_level_review(reviewer_discord_id, level_id)
@@ -35,7 +35,7 @@ impl<'a> LevelReviewService<'a> {
 
 	pub async fn review_level(
 		&self,
-		level_review: &LevelReview
+		level_review: &LevelReview,
 	) -> Result<LevelRequest, LevelReviewError> {
 		Self::validate_level_review(&level_review.review_contents)?;
 
@@ -52,7 +52,7 @@ impl<'a> LevelReviewService<'a> {
 					error!("Level request does not exist");
 					Err(LevelReviewError::LevelRequestDoesNotExists)
 				},
-				|level_request_data| Ok(LevelRequest::from(level_request_data))
+				|level_request_data| Ok(LevelRequest::from(level_request_data)),
 			)?;
 
 		if !level_request.has_requested_feedback
@@ -77,7 +77,7 @@ impl<'a> LevelReviewService<'a> {
 
 	pub async fn update_level_review_message_id(
 		&self,
-		update_level_review_message: UpdateLevelReviewMessageId
+		update_level_review_message: UpdateLevelReviewMessageId,
 	) -> Result<(), LevelReviewError> {
 		self.requestx_api_client
 			.update_level_review_message_id(update_level_review_message)
@@ -88,7 +88,7 @@ impl<'a> LevelReviewService<'a> {
 		if review_contents.len() > MAX_REVIEW_CHARACTERS {
 			return Err(LevelReviewError::DiscordFormattingError(
 				0,
-				review_contents.to_string()
+				review_contents.to_string(),
 			));
 		}
 
@@ -100,7 +100,7 @@ impl<'a> LevelReviewService<'a> {
 			if paragraph.len() > 1024 {
 				return Err(LevelReviewError::DiscordFormattingError(
 					index,
-					paragraph.to_string()
+					paragraph.to_string(),
 				));
 			}
 		}

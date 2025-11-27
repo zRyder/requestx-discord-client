@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
 pub struct User {
 	pub last_request_time: Option<DateTime<Utc>>,
-	pub request_cooldown: u64
+	pub request_cooldown: u64,
 }
 
 impl User {
@@ -73,5 +73,5 @@ pub struct UserGDAccountLink {
 	pub discord_id: u64,
 	pub gd_username: String,
 	pub gd_player_id: u64,
-	pub gd_account_requestx_token: String
+	pub gd_account_requestx_token: String,
 }

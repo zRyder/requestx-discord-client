@@ -1,21 +1,22 @@
 use std::process;
 
-use log::error;
-use serenity::{
-	all::{ButtonStyle, Context, CreateMessage, GetMessages, Message, User},
-	builder::CreateButton
-};
-use serenity::all::GenericChannelId;
+use crate::serenity::discord::get_request_level_embed;
 use crate::{
 	config::client_config::CLIENT_CONFIG,
-	serenity::discord::{get_init_gd_account_link_embed, get_verify_gd_account_link_embed}
+	serenity::discord::{get_init_gd_account_link_embed, get_verify_gd_account_link_embed},
 };
-use crate::serenity::discord::get_request_level_embed;
+use log::error;
+use serenity::all::GenericChannelId;
+use serenity::{
+	all::{ButtonStyle, Context, CreateMessage, GetMessages, Message, User},
+	builder::CreateButton,
+};
 
 pub async fn init_request_message(ctx: &Context, bot_user: &User) {
 	let request_channel = GenericChannelId::new(CLIENT_CONFIG.discord_public_channel_id);
 
-	let messages = request_channel.messages(&ctx.http, GetMessages::new())
+	let messages = request_channel
+		.messages(&ctx.http, GetMessages::new())
 		.await
 		.map_err(|read_messages_error| {
 			error!(
@@ -28,12 +29,9 @@ pub async fn init_request_message(ctx: &Context, bot_user: &User) {
 		.unwrap_or_default();
 
 	if !messages.is_empty() {
-		let request_message_exists =
-			messages
-				.iter()
-				.fold(false, | request_exists, message| {
-						request_exists || check_message(&message, "request".to_string())
-				});
+		let request_message_exists = messages.iter().fold(false, |request_exists, message| {
+			request_exists || check_message(&message, "request".to_string())
+		});
 
 		if !request_message_exists {
 			send_request_message(&ctx, &bot_user, &request_channel).await
@@ -66,7 +64,7 @@ pub async fn init_verify_message(ctx: &Context, bot_user: &User) {
 				.fold((false, false), |(init_exists, verify_exists), message| {
 					(
 						init_exists || check_message(&message, "init".to_string()),
-						verify_exists || check_message(&message, "verify".to_string())
+						verify_exists || check_message(&message, "verify".to_string()),
 					)
 				});
 
@@ -97,7 +95,7 @@ async fn send_request_message(ctx: &Context, bot_user: &User, request_channel: &
 		.button(
 			CreateButton::new("request-level-button")
 				.label("Request a Level")
-				.style(ButtonStyle::Success)
+				.style(ButtonStyle::Success),
 		)
 		.embed(get_request_level_embed(&bot_user));
 
@@ -118,7 +116,7 @@ async fn send_init_message(ctx: &Context, bot_user: &User, verify_channel: &Gene
 		.button(
 			CreateButton::new("init-gd-account-link-button")
 				.label("Link GD Account")
-				.style(ButtonStyle::Primary)
+				.style(ButtonStyle::Primary),
 		)
 		.embed(get_init_gd_account_link_embed(&bot_user));
 
@@ -139,7 +137,7 @@ async fn send_verify_message(ctx: &Context, bot_user: &User, verify_channel: &Ge
 		.button(
 			CreateButton::new("verify-gd-account-link-button")
 				.label("Verify GD Account Link")
-				.style(ButtonStyle::Primary)
+				.style(ButtonStyle::Primary),
 		)
 		.embed(get_verify_gd_account_link_embed(&bot_user));
 

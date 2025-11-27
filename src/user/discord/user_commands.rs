@@ -1,17 +1,17 @@
 use serenity::all::{
 	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-	MessageBuilder, ResolvedOption, ResolvedValue
+	MessageBuilder, ResolvedOption, ResolvedValue,
 };
 
+use crate::config::client_config::CLIENT_CONFIG;
+use crate::serenity::discord::log_error_to_discord;
 use crate::{
 	serenity::discord::{invoke_command_ephemeral, log_to_discord},
 	user::{
 		model::{discord_user::User, discord_user_error::DiscordUserError},
-		service::user_service::UserService
-	}
+		service::user_service::UserService,
+	},
 };
-use crate::config::client_config::CLIENT_CONFIG;
-use crate::serenity::discord::log_error_to_discord;
 
 pub fn register_view_cooldown<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("view-cooldown")
@@ -27,11 +27,13 @@ pub async fn run_view_cooldown(ctx: &Context, command: &CommandInteraction) {
 		Err(get_discord_user_error) => {
 			let mut log_message = MessageBuilder::new();
 			log_message = log_message.push_bold(format!("{} ", command.user.name).as_str());
-			log_message = log_message.push_line(format!(
-				"({}) cause an error when viewing cooldown",
-				command.user.id
-			).as_str());
-			log_message = log_message.push_codeblock(format!("{:?}", get_discord_user_error).as_str(), Some("rust"));
+			log_message = log_message.push_line(
+				format!("({}) cause an error when viewing cooldown", command.user.id).as_str(),
+			);
+			log_message = log_message.push_codeblock(
+				format!("{:?}", get_discord_user_error).as_str(),
+				Some("rust"),
+			);
 			log_to_discord(ctx.clone(), log_message.build()).await;
 
 			invoke_command_ephemeral(&get_discord_user_error.to_string(), &ctx, &command).await;
@@ -42,15 +44,15 @@ pub async fn run_view_cooldown(ctx: &Context, command: &CommandInteraction) {
 pub fn register_view_user_cooldown<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("view-user-cooldown")
 		.description(
-			"Views the current time remaining before a specific user can make another request."
+			"Views the current time remaining before a specific user can make another request.",
 		)
 		.add_option(
 			CreateCommandOption::new(
 				CommandOptionType::User,
 				"discord_user_id",
-				"The user who's cooldown to view."
+				"The user who's cooldown to view.",
 			)
-			.required(true)
+			.required(true),
 		)
 }
 
@@ -80,7 +82,8 @@ pub async fn run_view_user_cooldown(ctx: &Context, command: &CommandInteraction)
 		Ok(discord_user) => output_user_cooldown(&ctx, &command, &discord_user).await,
 		Err(get_discord_user_error) => {
 			if matches!(get_discord_user_error, DiscordUserError::UserDoesNotExist) {
-				return invoke_command_ephemeral("You can request a level now", &ctx, &command).await;
+				return invoke_command_ephemeral("You can request a level now", &ctx, &command)
+					.await;
 			}
 
 			log_error_to_discord(
@@ -88,8 +91,9 @@ pub async fn run_view_user_cooldown(ctx: &Context, command: &CommandInteraction)
 				"viewing cooldown",
 				&get_discord_user_error,
 				None,
-				&ctx
-			).await;
+				&ctx,
+			)
+			.await;
 			invoke_command_ephemeral(&get_discord_user_error.to_string(), &ctx, &command).await;
 		}
 	}
@@ -104,7 +108,7 @@ async fn output_user_cooldown(ctx: &Context, command: &CommandInteraction, disco
 			)
 			.as_str(),
 			&ctx,
-			&command
+			&command,
 		)
 		.await;
 	} else {

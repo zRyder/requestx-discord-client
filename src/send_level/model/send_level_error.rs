@@ -1,6 +1,6 @@
 use std::{
 	error::Error,
-	fmt::{Display, Formatter}
+	fmt::{Display, Formatter},
 };
 
 #[derive(Debug, PartialEq)]
@@ -8,7 +8,7 @@ pub enum ModeratorError {
 	LevelRequestDoesNotExist,
 	RequestXApiError,
 	SerializeError,
-	RequestError
+	RequestError,
 }
 
 impl Display for ModeratorError {

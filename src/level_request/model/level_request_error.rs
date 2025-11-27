@@ -1,6 +1,6 @@
 use std::{
 	error::Error,
-	fmt::{Display, Formatter}
+	fmt::{Display, Formatter},
 };
 
 use serde::{Deserialize, Serialize};
@@ -16,12 +16,12 @@ pub enum LevelRequestError {
 	UserOnCooldown(User),
 	RequestNonCreatedLevel,
 	RequestsDisabled,
-	RequestXApiError(ErrorMessage)
+	RequestXApiError(ErrorMessage),
 }
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize, Default)]
 pub struct ErrorMessage {
-	pub message: String
+	pub message: String,
 }
 
 impl Display for LevelRequestError {
@@ -47,7 +47,10 @@ impl Display for LevelRequestError {
 				)
 			}
 			LevelRequestError::RequestNonCreatedLevel => {
-				write!(f, "You cannot request a level that you did not create at this time.")
+				write!(
+					f,
+					"You cannot request a level that you did not create at this time."
+				)
 			}
 			LevelRequestError::RequestsDisabled => {
 				write!(f, "Requests are currently disabled.")

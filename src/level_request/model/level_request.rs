@@ -13,12 +13,15 @@ pub struct LevelRequest {
 	pub notify: bool,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub discord_message_id: Option<u64>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub level_name: Option<String>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub level_author: Option<String>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub level_length: Option<LevelLength>
+	#[serde(skip_serializing_if = "Option::is_none", flatten)]
+	pub gd_level_info: Option<GdLevelInfo>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GdLevelInfo {
+	pub level_name: String,
+	pub level_author: String,
+	pub level_length: LevelLength,
 }
 
 impl LevelRequest {
@@ -38,9 +41,7 @@ impl LevelRequest {
 			has_requested_feedback,
 			notify,
 			discord_message_id: None,
-			level_name: None,
-			level_author: None,
-			level_length: None
+			gd_level_info: None,
 		}
 	}
 }
@@ -54,7 +55,7 @@ pub struct UpdateLevelRequest {
 	pub request_score: Option<RequestRating>,
 	pub youtube_video_link: Option<String>,
 	pub has_requested_feedback: Option<bool>,
-	pub notify: Option<bool>
+	pub notify: Option<bool>,
 }
 
 impl UpdateLevelRequest {
@@ -64,7 +65,7 @@ impl UpdateLevelRequest {
 		request_score: Option<RequestRating>,
 		youtube_video_link: Option<String>,
 		has_requested_feedback: Option<bool>,
-		notify: Option<bool>
+		notify: Option<bool>,
 	) -> Self {
 		Self {
 			discord_user_id,
@@ -72,7 +73,7 @@ impl UpdateLevelRequest {
 			request_score,
 			youtube_video_link,
 			has_requested_feedback,
-			notify
+			notify,
 		}
 	}
 }
@@ -80,5 +81,5 @@ impl UpdateLevelRequest {
 #[derive(Serialize)]
 pub struct UpdateLevelRequestMessageId {
 	pub level_id: u64,
-	pub discord_message_id: u64
+	pub discord_message_id: u64,
 }

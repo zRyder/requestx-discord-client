@@ -1,7 +1,5 @@
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use std::{
-	fmt::{Display, Formatter},
-};
 
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -16,7 +14,7 @@ pub enum RequestRating {
 	Seven,
 	Eight,
 	Nine,
-	Ten
+	Ten,
 }
 
 #[derive(PartialEq, Deserialize, Debug, Copy, Clone)]
@@ -26,7 +24,7 @@ pub enum LevelLength {
 	Medium,
 	Long,
 	ExtraLong,
-	Platformer
+	Platformer,
 }
 
 impl Display for RequestRating {
@@ -81,7 +79,7 @@ impl FromStr for RequestRating {
 			"Eight" => Ok(RequestRating::Eight),
 			"Nine" => Ok(RequestRating::Nine),
 			"Ten" => Ok(RequestRating::Ten),
-			_ => Err(())
+			_ => Err(()),
 		}
 	}
 }
@@ -89,7 +87,7 @@ impl FromStr for RequestRating {
 impl Serialize for RequestRating {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
-		S: Serializer
+		S: Serializer,
 	{
 		match self {
 			RequestRating::One => serializer.serialize_str("One"),
@@ -101,7 +99,7 @@ impl Serialize for RequestRating {
 			RequestRating::Seven => serializer.serialize_str("Seven"),
 			RequestRating::Eight => serializer.serialize_str("Eight"),
 			RequestRating::Nine => serializer.serialize_str("Nine"),
-			RequestRating::Ten => serializer.serialize_str("Ten")
+			RequestRating::Ten => serializer.serialize_str("Ten"),
 		}
 	}
 }
@@ -119,7 +117,7 @@ impl FromStr for LevelLength {
 			"ExtraLong" => Ok(LevelLength::ExtraLong),
 			"Platformer" => Ok(LevelLength::Platformer),
 			"Plat." => Ok(LevelLength::Platformer),
-			_ => Err(())
+			_ => Err(()),
 		}
 	}
 }
@@ -127,7 +125,7 @@ impl FromStr for LevelLength {
 impl Serialize for LevelLength {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
-		S: Serializer
+		S: Serializer,
 	{
 		match self {
 			LevelLength::Tiny => serializer.serialize_str("Tiny"),
@@ -135,7 +133,7 @@ impl Serialize for LevelLength {
 			LevelLength::Medium => serializer.serialize_str("Medium"),
 			LevelLength::Long => serializer.serialize_str("Long"),
 			LevelLength::ExtraLong => serializer.serialize_str("XL"),
-			LevelLength::Platformer => serializer.serialize_str("Platformer")
+			LevelLength::Platformer => serializer.serialize_str("Platformer"),
 		}
 	}
 }

@@ -13,7 +13,7 @@ pub struct ClientConfig {
 	pub discord_log_channel_id: u64,
 	pub discord_requests_channel_id: u64,
 	pub discord_public_channel_id: u64,
-	pub discord_verify_channel_id: u64
+	pub discord_verify_channel_id: u64,
 }
 
 lazy_static! {

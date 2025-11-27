@@ -1,37 +1,38 @@
-use log::error;
-use reqwest::{
-	header::{HeaderMap, HeaderValue},
-	Client, StatusCode
-};
-use crate::{
-    config::{
-		client_config::CLIENT_CONFIG,
-		constants::{APPLICATION_JSON, CONTENT_TYPE},
-		requestx_api_config::{RequestxApiConfig, REQUESTX_API_CONFIG}
-	},
-    level_request::model::{
-		level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
-		level_request_error::{ErrorMessage, LevelRequestError}
-	},
-    level_review::model::{
-		level_review::{LevelReview, UpdateLevelReviewMessageId},
-		level_review_error::LevelReviewError
-	},
-    request_manager::model::request_manager::UpdateRequestManagerRequest,
-    reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError},
-    send_level::model::{
-		moderator::{SendLevelRequest, SentLevel},
-		send_level_error::ModeratorError
-	},
-    user::model::{discord_user::User, discord_user_error::DiscordUserError}
-};
+use crate::level_request::model::level_request::GdLevelInfo;
 use crate::requestx_api::auth::auth_service::RequestXAuthService;
 use crate::user::model::discord_user::{UserGDAccountLink, UserGDAccountLinkRequest};
 use crate::user::model::discord_user_error::GDAccountLinkError;
+use crate::{
+	config::{
+		client_config::CLIENT_CONFIG,
+		constants::{APPLICATION_JSON, CONTENT_TYPE},
+		requestx_api_config::{RequestxApiConfig, REQUESTX_API_CONFIG},
+	},
+	level_request::model::{
+		level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
+		level_request_error::{ErrorMessage, LevelRequestError},
+	},
+	level_review::model::{
+		level_review::{LevelReview, UpdateLevelReviewMessageId},
+		level_review_error::LevelReviewError,
+	},
+	request_manager::model::request_manager::UpdateRequestManagerRequest,
+	reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError},
+	send_level::model::{
+		moderator::{SendLevelRequest, SentLevel},
+		send_level_error::ModeratorError,
+	},
+	user::model::{discord_user::User, discord_user_error::DiscordUserError},
+};
+use log::error;
+use reqwest::{
+	header::{HeaderMap, HeaderValue},
+	Client, StatusCode,
+};
 
 pub struct RequestXApiClient<'a> {
 	requestx_api_config: &'a RequestxApiConfig,
-	web_client: Client
+	web_client: Client,
 }
 
 impl<'a> RequestXApiClient<'a> {
@@ -43,7 +44,7 @@ impl<'a> RequestXApiClient<'a> {
 			web_client: Client::builder()
 				.default_headers(default_headers)
 				.build()
-				.expect("Client::new")
+				.expect("Client::new"),
 		}
 	}
 
@@ -99,7 +100,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn get_level_request(
 		&self,
-		level_id: u64
+		level_id: u64,
 	) -> Result<Option<LevelRequest>, LevelRequestError> {
 		let mut headers = HeaderMap::new();
 		Self::get_auth_header(&mut headers).await;
@@ -153,7 +154,7 @@ impl<'a> RequestXApiClient<'a> {
 	pub async fn get_level_review(
 		&self,
 		reviewer_discord_id: u64,
-		level_id: u64
+		level_id: u64,
 	) -> Result<Option<LevelReview>, LevelReviewError> {
 		let mut headers = HeaderMap::new();
 		Self::get_auth_header(&mut headers).await;
@@ -206,7 +207,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn create_level_request(
 		&self,
-		level_request: &LevelRequest
+		level_request: &LevelRequest,
 	) -> Result<LevelRequest, LevelRequestError> {
 		let serialized_level_request =
 			serde_json::to_string(&level_request).map_err(|serialize_error| {
@@ -258,7 +259,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn update_level_request(
 		&self,
-		update_level_request: UpdateLevelRequest
+		update_level_request: UpdateLevelRequest,
 	) -> Result<LevelRequest, LevelRequestError> {
 		let serialized_update_level_request = serde_json::to_string(&update_level_request)
 			.map_err(|serialize_error| {
@@ -295,7 +296,7 @@ impl<'a> RequestXApiClient<'a> {
 		if status_code.is_client_error() || status_code.is_server_error() {
 			Err(RequestXApiClient::handle_level_request_error(
 				status_code,
-				response_body
+				response_body,
 			))
 		} else {
 			let level_request_data: LevelRequest =
@@ -313,7 +314,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn delete_level_request(
 		&self,
-		level_id: u64
+		level_id: u64,
 	) -> Result<LevelRequest, LevelRequestError> {
 		let mut headers = HeaderMap::new();
 		Self::get_auth_header(&mut headers).await;
@@ -342,7 +343,7 @@ impl<'a> RequestXApiClient<'a> {
 		if status_code.is_client_error() || status_code.is_server_error() {
 			Err(RequestXApiClient::handle_level_request_error(
 				status_code,
-				response_body
+				response_body,
 			))
 		} else {
 			let level_request_data: LevelRequest =
@@ -360,7 +361,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn create_level_review(
 		&self,
-		level_review: &LevelReview
+		level_review: &LevelReview,
 	) -> Result<LevelReview, LevelReviewError> {
 		let serialized_create_level_review =
 			serde_json::to_string(&level_review).map_err(|serialize_error| {
@@ -419,7 +420,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn create_reviewer(
 		&self,
-		create_reviewer_request: CreateReviewerRequest
+		create_reviewer_request: CreateReviewerRequest,
 	) -> Result<(), ReviewerError> {
 		let serialized_create_reviewer =
 			serde_json::to_string(&create_reviewer_request).map_err(|serialize_error| {
@@ -506,7 +507,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn send_level(
 		&self,
-		send_level: SendLevelRequest
+		send_level: SendLevelRequest,
 	) -> Result<SentLevel, ModeratorError> {
 		let serialized_send_level =
 			serde_json::to_string(&send_level).map_err(|serialize_error| {
@@ -543,7 +544,7 @@ impl<'a> RequestXApiClient<'a> {
 		if status_code.is_client_error() || status_code.is_server_error() {
 			Err(RequestXApiClient::handle_moderator_client_error(
 				status_code,
-				response_body
+				response_body,
 			))
 		} else {
 			let send_level_data: SentLevel =
@@ -561,11 +562,14 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn init_gd_account_link(
 		&self,
-		user_gd_account_link_request: UserGDAccountLinkRequest
+		user_gd_account_link_request: UserGDAccountLinkRequest,
 	) -> Result<UserGDAccountLink, GDAccountLinkError> {
 		let serialized_init_gd_account_link = serde_json::to_string(&user_gd_account_link_request)
 			.map_err(|serialize_error| {
-				error!("Unable to serialize init gd account link request: {}", serialize_error);
+				error!(
+					"Unable to serialize init gd account link request: {}",
+					serialize_error
+				);
 				GDAccountLinkError::SerializeError
 			})?;
 
@@ -575,8 +579,7 @@ impl<'a> RequestXApiClient<'a> {
 			.web_client
 			.post(format!(
 				"{}{}",
-				self.requestx_api_config.base_url,
-				self.requestx_api_config.paths.gd_account_link,
+				self.requestx_api_config.base_url, self.requestx_api_config.paths.gd_account_link,
 			))
 			.body(serialized_init_gd_account_link)
 			.headers(headers)
@@ -595,7 +598,7 @@ impl<'a> RequestXApiClient<'a> {
 		if status_code.is_client_error() || status_code.is_server_error() {
 			Err(RequestXApiClient::handle_init_gd_account_link_client_error(
 				status_code,
-				response_body
+				response_body,
 			))
 		} else {
 			let user_gd_account_link: UserGDAccountLink = serde_json::from_str(&response_body)
@@ -610,10 +613,7 @@ impl<'a> RequestXApiClient<'a> {
 		}
 	}
 
-	pub async fn verify_gd_account_link(
-		&self,
-		discord_id: u64
-	) -> Result<(), GDAccountLinkError> {
+	pub async fn verify_gd_account_link(&self, discord_id: u64) -> Result<(), GDAccountLinkError> {
 		let mut headers = HeaderMap::new();
 		Self::get_auth_header(&mut headers).await;
 		let response = self
@@ -640,16 +640,64 @@ impl<'a> RequestXApiClient<'a> {
 		if status_code.is_client_error() || status_code.is_server_error() {
 			Err(RequestXApiClient::handle_init_gd_account_link_client_error(
 				status_code,
-				response_body
+				response_body,
 			))
 		} else {
 			Ok(())
 		}
 	}
 
+	pub async fn get_gd_level_info(
+		&self,
+		level_id: u64,
+	) -> Result<Option<GdLevelInfo>, LevelRequestError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
+		let response = self
+			.web_client
+			.get(format!(
+				"{}{}/{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.gd_level_info,
+				level_id
+			))
+			.headers(headers)
+			.send()
+			.await
+			.map_err(|get_gd_level_info_error| {
+				error!(
+					"Error making call for get GD level info to RequestX API: {}",
+					get_gd_level_info_error
+				);
+				LevelRequestError::RequestError
+			})?;
+
+		let status_code = response.status();
+		let response_body = response.text().await.unwrap();
+		if status_code.eq(&StatusCode::NOT_FOUND) {
+			Ok(None)
+		} else if status_code.is_client_error() || status_code.is_server_error() {
+			Err(RequestXApiClient::handle_level_request_error(
+				status_code,
+				response_body,
+			))
+		} else {
+			let gd_level_info: GdLevelInfo =
+				serde_json::from_str(&response_body).map_err(|deserialize_error| {
+					error!(
+						"Unable to deserialize OK response from RequestX API: {}",
+						deserialize_error
+					);
+					LevelRequestError::RequestError
+				})?;
+
+			Ok(Some(gd_level_info))
+		}
+	}
+
 	pub async fn update_request_manager(
 		&self,
-		update_request_manager: &UpdateRequestManagerRequest
+		update_request_manager: &UpdateRequestManagerRequest,
 	) -> Result<(), LevelRequestError> {
 		let serialized_update_request_manager = serde_json::to_string(&update_request_manager)
 			.map_err(|serialize_error| {
@@ -687,7 +735,7 @@ impl<'a> RequestXApiClient<'a> {
 		if status_code.is_client_error() || status_code.is_server_error() {
 			Err(RequestXApiClient::handle_level_request_error(
 				status_code,
-				response_body
+				response_body,
 			))
 		} else {
 			Ok(())
@@ -696,7 +744,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn update_level_request_message_id(
 		&self,
-		update_level_request_message_id: UpdateLevelRequestMessageId
+		update_level_request_message_id: UpdateLevelRequestMessageId,
 	) -> Result<(), LevelRequestError> {
 		let serialized_update_level_request_message_id =
 			serde_json::to_string(&update_level_request_message_id).map_err(|serialize_error| {
@@ -734,7 +782,7 @@ impl<'a> RequestXApiClient<'a> {
 		if status_code.is_client_error() || status_code.is_server_error() {
 			Err(RequestXApiClient::handle_level_request_error(
 				status_code,
-				response_body
+				response_body,
 			))
 		} else {
 			Ok(())
@@ -743,7 +791,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	pub async fn update_level_review_message_id(
 		&self,
-		update_level_review_message_id: UpdateLevelReviewMessageId
+		update_level_review_message_id: UpdateLevelReviewMessageId,
 	) -> Result<(), LevelReviewError> {
 		let serialized_update_level_review_message_id =
 			serde_json::to_string(&update_level_review_message_id).map_err(|serialize_error| {
@@ -799,18 +847,18 @@ impl<'a> RequestXApiClient<'a> {
 			.map(|jwt| {
 				headers.insert(
 					&*REQUESTX_API_CONFIG.headers.requestx_discord_app_id,
-					HeaderValue::from(CLIENT_CONFIG.discord_app_id)
+					HeaderValue::from(CLIENT_CONFIG.discord_app_id),
 				);
 				headers.insert(
 					"authorization",
-					HeaderValue::from_str(format!("Bearer {}", jwt).as_str()).unwrap()
+					HeaderValue::from_str(format!("Bearer {}", jwt).as_str()).unwrap(),
 				);
 			});
 	}
 
 	fn handle_level_request_error(
 		response_status: StatusCode,
-		response_body: String
+		response_body: String,
 	) -> LevelRequestError {
 		let error_message =
 			serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
@@ -821,7 +869,10 @@ impl<'a> RequestXApiClient<'a> {
 
 		match response_status {
 			StatusCode::BAD_REQUEST => {
-				if error_message.message.contains("request a level they did not create") {
+				if error_message
+					.message
+					.contains("request a level they did not create")
+				{
 					LevelRequestError::RequestNonCreatedLevel
 				} else {
 					LevelRequestError::RequestXApiError(error_message)
@@ -829,16 +880,16 @@ impl<'a> RequestXApiClient<'a> {
 			}
 			StatusCode::CONFLICT => LevelRequestError::LevelRequestExists,
 			StatusCode::TOO_MANY_REQUESTS => LevelRequestError::UserOnCooldown(
-				serde_json::from_str::<User>(&*response_body).unwrap_or_default()
+				serde_json::from_str::<User>(&*response_body).unwrap_or_default(),
 			),
 			StatusCode::SERVICE_UNAVAILABLE => LevelRequestError::RequestsDisabled,
-			_ => LevelRequestError::RequestXApiError(error_message)
+			_ => LevelRequestError::RequestXApiError(error_message),
 		}
 	}
 
 	fn handle_moderator_client_error(
 		response_status: StatusCode,
-		response_body: String
+		response_body: String,
 	) -> ModeratorError {
 		let error_message =
 			serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
@@ -856,7 +907,7 @@ impl<'a> RequestXApiClient<'a> {
 
 	fn handle_init_gd_account_link_client_error(
 		response_status: StatusCode,
-		response_body: String
+		response_body: String,
 	) -> GDAccountLinkError {
 		let error_message =
 			serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
@@ -873,8 +924,7 @@ impl<'a> RequestXApiClient<'a> {
 			GDAccountLinkError::InvalidGDAccountLinkToken
 		} else if response_status.eq(&StatusCode::GONE) {
 			GDAccountLinkError::GDAccountLinkExpired
-		}
-		else {
+		} else {
 			GDAccountLinkError::RequestXApiError(error_message)
 		}
 	}
@@ -889,7 +939,7 @@ mod tests {
 		config::requestx_api_config::REQUESTX_API_CONFIG,
 		level_request::model::level_request::LevelRequest,
 		requestx_api::requestx_api_client::RequestXApiClient,
-		send_level::model::request_score::RequestRating
+		send_level::model::request_score::RequestRating,
 	};
 
 	async fn init_mock_server() -> MockServer {
@@ -910,9 +960,7 @@ mod tests {
 			has_requested_feedback: false,
 			notify: false,
 			discord_message_id: None,
-			level_name: None,
-			level_author: None,
-			level_length: None
+			gd_level_info: None,
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)
@@ -936,9 +984,7 @@ mod tests {
 			has_requested_feedback: false,
 			notify: false,
 			discord_message_id: None,
-			level_name: None,
-			level_author: None,
-			level_length: None
+			gd_level_info: None,
 		};
 		let mock = server.mock(|when, then| {
 			when.path(&*REQUESTX_API_CONFIG.paths.request_level)

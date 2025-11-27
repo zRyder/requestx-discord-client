@@ -7,28 +7,28 @@ use crate::level_request::model::level_request::LevelRequest;
 #[derive(Deserialize, Debug, Clone)]
 pub struct SentLevel {
 	pub level_request: LevelRequest,
-	pub moderator_data: ModeratorData
+	pub moderator_data: ModeratorData,
 }
 
 #[derive(Serialize, Debug, Copy, Clone)]
 pub struct SendLevelRequest {
 	pub level_id: u64,
 	#[serde(flatten)]
-	pub moderator_data: ModeratorData
+	pub moderator_data: ModeratorData,
 }
 
 impl SendLevelRequest {
 	pub fn new(
 		level_id: u64,
 		suggested_score: SuggestedScore,
-		suggested_rating: SuggestedRating
+		suggested_rating: SuggestedRating,
 	) -> Self {
 		Self {
 			level_id,
 			moderator_data: ModeratorData {
 				suggested_score,
-				suggested_rating
-			}
+				suggested_rating,
+			},
 		}
 	}
 }
@@ -36,7 +36,7 @@ impl SendLevelRequest {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct ModeratorData {
 	pub suggested_score: SuggestedScore,
-	pub suggested_rating: SuggestedRating
+	pub suggested_rating: SuggestedRating,
 }
 
 #[derive(PartialEq, Deserialize, Debug, Copy, Clone)]
@@ -52,7 +52,7 @@ pub enum SuggestedScore {
 	Seven,
 	Eight,
 	Nine,
-	Ten
+	Ten,
 }
 
 #[derive(PartialEq, Deserialize, Debug, Copy, Clone)]
@@ -61,7 +61,7 @@ pub enum SuggestedRating {
 	Feature,
 	Epic,
 	Legendary,
-	Mythic
+	Mythic,
 }
 
 impl FromStr for SuggestedScore {
@@ -81,7 +81,7 @@ impl FromStr for SuggestedScore {
 			"Eight" => Ok(Self::Eight),
 			"Nine" => Ok(Self::Nine),
 			"Ten" => Ok(Self::Ten),
-			_ => Err(())
+			_ => Err(()),
 		}
 	}
 }
@@ -89,7 +89,7 @@ impl FromStr for SuggestedScore {
 impl Serialize for SuggestedScore {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
-		S: Serializer
+		S: Serializer,
 	{
 		match self {
 			SuggestedScore::NoRate => serializer.serialize_str("NoRate"),
@@ -103,7 +103,7 @@ impl Serialize for SuggestedScore {
 			SuggestedScore::Seven => serializer.serialize_str("Seven"),
 			SuggestedScore::Eight => serializer.serialize_str("Eight"),
 			SuggestedScore::Nine => serializer.serialize_str("Nine"),
-			SuggestedScore::Ten => serializer.serialize_str("Ten")
+			SuggestedScore::Ten => serializer.serialize_str("Ten"),
 		}
 	}
 }
@@ -118,7 +118,7 @@ impl FromStr for SuggestedRating {
 			"Epic" => Ok(Self::Epic),
 			"Legendary" => Ok(Self::Legendary),
 			"Mythic" => Ok(Self::Mythic),
-			_ => Err(())
+			_ => Err(()),
 		}
 	}
 }
@@ -126,14 +126,14 @@ impl FromStr for SuggestedRating {
 impl Serialize for SuggestedRating {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
-		S: Serializer
+		S: Serializer,
 	{
 		match self {
 			SuggestedRating::Rate => serializer.serialize_str("Rate"),
 			SuggestedRating::Feature => serializer.serialize_str("Feature"),
 			SuggestedRating::Epic => serializer.serialize_str("Epic"),
 			SuggestedRating::Legendary => serializer.serialize_str("Legendary"),
-			SuggestedRating::Mythic => serializer.serialize_str("Mythic")
+			SuggestedRating::Mythic => serializer.serialize_str("Mythic"),
 		}
 	}
 }

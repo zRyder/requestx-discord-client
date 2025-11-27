@@ -1,12 +1,12 @@
 use std::{
 	error::Error,
-	fmt::{Display, Formatter}
+	fmt::{Display, Formatter},
 };
 
 #[derive(Debug, PartialEq)]
 pub enum AuthError {
 	Unauthorized,
-	AuthenticationFailed
+	AuthenticationFailed,
 }
 
 impl Display for AuthError {
@@ -16,7 +16,7 @@ impl Display for AuthError {
 				write!(f, "Unauthorized")
 			}
 			AuthError::AuthenticationFailed => {
-				write!(f, "There was an error while attempting to auhtenticate")
+				write!(f, "There was an error while attempting to authenticate")
 			}
 		}
 	}

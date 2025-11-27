@@ -4,7 +4,7 @@ use jsonwebtoken::{decode, DecodingKey, Validation};
 use log::{debug, error, warn};
 use reqwest::{
 	header::{HeaderMap, HeaderValue},
-	StatusCode
+	StatusCode,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -12,29 +12,30 @@ use tokio::sync::Mutex;
 use crate::{
 	config::{
 		auth_config::AUTH_CONFIG, client_config::CLIENT_CONFIG, constants::CONTENT_LENGTH,
-		requestx_api_config::REQUESTX_API_CONFIG
+		requestx_api_config::REQUESTX_API_CONFIG,
 	},
-	requestx_api::auth::auth_error::AuthError
+	requestx_api::auth::auth_error::AuthError,
 };
 
-pub struct RequestXAuthService{}
+pub struct RequestXAuthService {}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
 	aud: u64,
 	iat: usize,
-	exp: usize
+	exp: usize,
 }
 
 static JWT: OnceCell<Mutex<String>> = OnceCell::new();
 
 impl RequestXAuthService {
-
 	pub async fn get_jwt() -> Result<String, AuthError> {
-		let jwt_lock: &Mutex<String> = JWT.get_or_try_init(async {
-			let token = Mutex::new(Self::generate_token().await?);
-			Ok(token)
-		}).await?;
+		let jwt_lock: &Mutex<String> = JWT
+			.get_or_try_init(async {
+				let token = Mutex::new(Self::generate_token().await?);
+				Ok(token)
+			})
+			.await?;
 
 		let mut current_token = jwt_lock.lock().await;
 
@@ -59,11 +60,11 @@ impl RequestXAuthService {
 		if let Ok(token_data) = decode::<Claims>(
 			token,
 			&DecodingKey::from_secret(&AUTH_CONFIG.secret_token.as_ref()),
-			&Validation::default()
+			&Validation::default(),
 		) {
 			token_data.claims.exp
 				< (Utc::now() - Duration::minutes(AUTH_CONFIG.token_buffer as i64)).timestamp()
-				as usize
+					as usize
 		} else {
 			true
 		}
@@ -74,11 +75,11 @@ impl RequestXAuthService {
 		let mut headers = HeaderMap::new();
 		headers.insert(
 			&*REQUESTX_API_CONFIG.headers.requestx_discord_app_id,
-			HeaderValue::from(CLIENT_CONFIG.discord_app_id)
+			HeaderValue::from(CLIENT_CONFIG.discord_app_id),
 		);
 		headers.insert(
 			&*AUTH_CONFIG.auth_header_name,
-			HeaderValue::from_static(&AUTH_CONFIG.access_token)
+			HeaderValue::from_static(&AUTH_CONFIG.access_token),
 		);
 		headers.insert(CONTENT_LENGTH, HeaderValue::from(0));
 		debug!(

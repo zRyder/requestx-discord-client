@@ -7,7 +7,7 @@ use crate::config::app_config::APP_CONFIG;
 pub struct RequestxApiConfig {
 	pub base_url: String,
 	pub paths: RequestxApiConfigPaths,
-	pub headers: RequestxApiHeaders
+	pub headers: RequestxApiHeaders,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -22,12 +22,13 @@ pub struct RequestxApiConfigPaths {
 	pub update_request_manager: String,
 	pub update_request_message_id: String,
 	pub update_review_message_id: String,
-	pub update_request_thread_id: String
+	pub update_request_thread_id: String,
+	pub gd_level_info: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RequestxApiHeaders {
-	pub requestx_discord_app_id: String
+	pub requestx_discord_app_id: String,
 }
 
 lazy_static! {
