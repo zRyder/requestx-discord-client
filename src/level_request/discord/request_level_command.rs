@@ -224,7 +224,7 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 		} else {
 			None
 		},
-		if let Some(video_link) = command_map.get("video_link") {
+		if let Some(video_link) = command_map.get("video-link") {
 			Some(video_link.as_str().unwrap().to_string())
 		} else {
 			None
