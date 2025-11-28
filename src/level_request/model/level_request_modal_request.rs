@@ -16,6 +16,6 @@ impl LevelRequestModalRequest {
     }
     
     pub fn is_valid_request(&self, now: DateTime<Utc>) -> bool {
-        self.expiry < now
+        self.expiry > now
     }
 }

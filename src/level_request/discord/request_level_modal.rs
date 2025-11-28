@@ -129,8 +129,7 @@ pub async fn run_request_level_modal_button_submit(ctx: &Context, button_interac
 
 	match level_request_service
 		.level_request_service(&level_request)
-		.await
-	{
+		.await {
 		Ok(requested_level) => {
 			match send_level_request_message_to_discord(&ctx, &requested_level).await {
 				Ok(message_data) => {
@@ -216,7 +215,6 @@ pub fn remove_stale_requests() {
 			interval.tick().await;
 			let now = Utc::now();
 			let mut request_buffer = get_request_buffer().await;
-			println!("{:?}", request_buffer);
 
 			request_buffer.retain(
 				|_, level_request_modal_request|
