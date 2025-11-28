@@ -1,31 +1,34 @@
-mod commands;
 mod config;
-mod model;
 
+mod level_request;
+mod level_review;
+mod request_manager;
+mod requestx_api;
+mod reviewer;
+mod send_level;
 mod serenity;
-mod service;
+mod user;
 
-use std::process;
-
+use crate::config::app_config::init_app_config;
+use ::serenity::secrets::Token;
 use ::serenity::{prelude::GatewayIntents, Client};
 use log::error;
-
-use crate::config::common_config::{init_app_config, APP_CONFIG};
+use log4rs::config::Deserializers;
 
 #[tokio::main]
 async fn main() {
-	log4rs::init_file("log4rs.yml", Default::default()).unwrap();
-	if let Err(error) = init_app_config() {
-		error!("Error loading app config: {}", error);
-		process::exit(1)
-	} else {
-		let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
-		let mut client = Client::builder(&APP_CONFIG.client_config.discord_bot_token, intents)
-			.event_handler(serenity::handler::Handler)
-			.await
-			.expect("Error creating client");
-		if let Err(why) = client.start().await {
-			error!("Client error: {why:?}");
-		}
+	log4rs::init_file("log4rs.yml", Deserializers::new()).unwrap();
+	init_app_config();
+
+	let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
+	let mut client = Client::builder(
+		Token::from_env("REQUESTX_DISCORD_BOT_TOKEN").unwrap(),
+		intents,
+	)
+	.event_handler(serenity::handler::Handler)
+	.await
+	.expect("Error creating client");
+	if let Err(why) = client.start().await {
+		error!("Client error: {why:?}");
 	}
 }

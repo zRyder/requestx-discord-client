@@ -1,5 +1,4 @@
 [client_config]
-discord_bot_token = "{{REQUESTX_DISCORD_BOT_TOKEN}}"
 discord_app_id = "{{REQUESTX_DISCORD_APP_ID}}"
 discord_guild_id = "{{REQUESTX_DISCORD_GUILD_ID}}"
 discord_reviewer_role_id = "{{REQUESTX_DISCORD_REVIEWER_ROLE_ID}}"
@@ -8,6 +7,7 @@ discord_bot_admin_id = "{{REQUESTX_DISCORD_BOT_ADMIN_ID}}"
 discord_log_channel_id = "{{REQUESTX_DISCORD_LOG_CHANNEL_ID}}"
 discord_requests_channel_id = "{{REQUESTX_DISCORD_REQUESTS_CHANNEL_ID}}"
 discord_public_channel_id = "{{REQUESTX_DISCORD_PUBLIC_CHANNEL_ID}}"
+discord_verify_channel_id = "{{REQUESTX_DISCORD_VERIFY_CHANNEL_ID}}"
 
 [requestx_api_config]
 base_url = "{{REQUESTX_BASE_URL}}"
@@ -19,10 +19,12 @@ review_level = "/api/v1/review_level"
 reviewer = "/api/v1/reviewer"
 auth = "/api/v1/auth"
 send_level = "/api/v1/internal/send_level"
+gd_account_link = "/api/v1/user/link"
 update_request_message_id = "/api/v1/internal/request_level"
 update_review_message_id = "/api/v1/internal/review_level"
 update_request_thread_id = "/api/v1/internal/request_level/thread"
 update_request_manager = "/api/v1/internal/request_config"
+gd_level_info = "/api/v1/internal/gd"
 
 [requestx_api_config.headers]
 requestx_discord_app_id = "X-REQUESTX-DISCORD-APP-ID"
