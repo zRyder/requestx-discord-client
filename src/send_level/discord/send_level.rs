@@ -3,7 +3,7 @@ use std::str::FromStr;
 use log::error;
 use serenity::all::{
 	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-	GenericChannelId, MessageBuilder,
+	GenericChannelId, Mention, MessageBuilder, UserId,
 };
 
 use crate::{
@@ -147,6 +147,7 @@ fn format_public_discord_message(sent_level: &SentLevel) -> MessageBuilder {
 
 	send_level_message = send_level_message.push(build_level_name_string(&sent_level).as_str());
 	send_level_message = send_level_message.push(build_sent_for_string(&sent_level).as_str());
+	send_level_message = send_level_message.push(build_notify_string(&sent_level).as_str());
 
 	send_level_message
 }
@@ -205,4 +206,19 @@ fn build_sent_for_with_rating_string(sent_level: &SentLevel) -> String {
 	);
 
 	level_sent_for_with_rating_string.build()
+}
+
+fn build_notify_string(sent_level: &SentLevel) -> String {
+	let mut notify_string = MessageBuilder::new();
+	if sent_level.level_request.notify {
+		notify_string = notify_string.push(
+			format!(
+				"\n{}",
+				Mention::User(UserId::new(sent_level.level_request.discord_user_id))
+			)
+			.as_str(),
+		);
+	}
+
+	notify_string.build()
 }

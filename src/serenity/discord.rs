@@ -1,6 +1,8 @@
 use chrono::Utc;
 use log::error;
-use serenity::all::{ButtonStyle, ComponentInteraction, CreateButton, GenericChannelId, MessageId, ModalInteraction};
+use serenity::all::{
+	ButtonStyle, ComponentInteraction, CreateButton, GenericChannelId, MessageId, ModalInteraction,
+};
 use serenity::{
 	all::{
 		ChannelId, CommandDataOptionValue, CommandInteraction, Context, CreateEmbed,
@@ -13,6 +15,8 @@ use serenity::{
 use std::{collections::HashMap, error::Error, fmt::Debug};
 use tokio::{sync::mpsc, task};
 
+use crate::request_manager::format_cooldown_duration_string;
+use crate::request_manager::model::request_manager::RequestConfig;
 use crate::{
 	config::client_config::CLIENT_CONFIG, level_request::model::level_request::LevelRequest,
 	send_level::model::request_score::LevelLength,
@@ -226,6 +230,14 @@ pub async fn invoke_component_ephemeral(
 	}
 }
 
+pub async fn invoke_message_response(content: &str, ctx: &Context, user: &User) {
+	let message = CreateMessage::new().content(content);
+
+	if let Err(dm_error) = user.id.dm(&ctx.http, message).await {
+		error!("Cannot dm user: {dm_error}");
+	}
+}
+
 async fn discord_log(mut rx: mpsc::Receiver<(String, Context)>) {
 	while let Some(data) = rx.recv().await {
 		if let Err(logger_error) = GenericChannelId::new(CLIENT_CONFIG.discord_log_channel_id)
@@ -266,6 +278,89 @@ pub fn get_request_level_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
 		),
 		false,
 	);
+
+	request_level_message_embed
+}
+
+pub fn get_request_level_config_embed<'a>(
+	bot_user: &'a User,
+	request_config: &RequestConfig,
+) -> CreateEmbed<'a> {
+	let mut request_level_message_embed = CreateEmbed::new();
+
+	request_level_message_embed =
+		request_level_message_embed.footer(CreateEmbedFooter::new("request-config"));
+	request_level_message_embed =
+		request_level_message_embed.author(CreateEmbedAuthor::from(bot_user.clone()));
+	request_level_message_embed = request_level_message_embed.timestamp(Utc::now());
+
+	let requests_enabled_string = if request_config
+		.enable_gd_requests
+		.is_some_and(|requests_enabled| requests_enabled)
+	{
+		MessageBuilder::new().push_bold("Enabled").build()
+	} else {
+		MessageBuilder::new().push_bold("Disabled").build()
+	};
+	let request_cooldown_string = if let Some(request_cooldown) = request_config.duration_in_minutes
+	{
+		if let Some(cooldown_string) = format_cooldown_duration_string(request_cooldown) {
+			MessageBuilder::new()
+				.push_bold(cooldown_string.as_str())
+				.build()
+		} else {
+			MessageBuilder::new().push_bold("No cooldown").build()
+		}
+	} else {
+		MessageBuilder::new().push_bold("Disabled").build()
+	};
+	let allow_non_user_created_level_requests_string = if request_config
+		.allow_non_user_created_levels
+		.is_some_and(|allow_non_user_created_levels| allow_non_user_created_levels)
+	{
+		MessageBuilder::new().push_bold("CAN").build()
+	} else {
+		MessageBuilder::new().push_bold("CANNOT").build()
+	};
+	let gd_request_enabled = if request_config
+		.enable_gd_requests
+		.is_some_and(|enable_gd_requests| enable_gd_requests)
+	{
+		MessageBuilder::new().push_bold("WILL").build()
+	} else {
+		MessageBuilder::new().push_bold("WILL NOT").build()
+	};
+
+	request_level_message_embed = request_level_message_embed
+		.field(
+			"Request Enabled",
+			format!("Level requests are currently: {}", requests_enabled_string),
+			false,
+		)
+		.field(
+			"Request cooldown",
+			format!(
+				"The request cooldown is currently: {}",
+				request_cooldown_string
+			),
+			false,
+		)
+		.field(
+			"User created level requests",
+			format!(
+				"You {} request levels that you have not created",
+				allow_non_user_created_level_requests_string
+			),
+			false,
+		)
+		.field(
+			"Geometry Dash integration",
+			format!(
+				"Your level requests {} automatically populate with in-game info",
+				gd_request_enabled
+			),
+			false,
+		);
 
 	request_level_message_embed
 }

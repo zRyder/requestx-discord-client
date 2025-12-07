@@ -1,11 +1,15 @@
-use crate::config::discord_config::init_request_message;
+use crate::config::discord_config::{
+	init_request_config_message, init_request_message, REQUESTX_BOT_USER,
+};
 use crate::level_request::discord::request_level_modal;
+use crate::level_request::discord::request_level_modal::remove_stale_requests;
+use crate::level_review::discord::review_message_handler;
 use crate::serenity::modals::get_request_level_modal;
 use crate::user::discord::{user_buttons, user_modals};
 use crate::{
 	config::{client_config::CLIENT_CONFIG, discord_config::init_verify_message},
 	level_request::discord::request_level_command,
-	level_review::discord::review,
+	level_review::discord::review_command,
 	request_manager::discord::request_manager_commands,
 	reviewer::discord::reviewer,
 	send_level::discord::send_level,
@@ -14,14 +18,13 @@ use crate::{
 };
 use async_trait::async_trait;
 use log::{error, info};
-use serenity::all::{CommandInteraction, FullEvent, ModalInteraction, RoleId};
+use serenity::all::{CommandInteraction, FullEvent, GuildThread, ModalInteraction, RoleId};
 use serenity::{
 	all::{
 		ComponentInteraction, CreateInteractionResponse, GuildId, Interaction, Message, MessageType,
 	},
 	prelude::{Context, EventHandler},
 };
-use crate::level_request::discord::request_level_modal::remove_stale_requests;
 
 pub struct Handler;
 
@@ -30,24 +33,17 @@ impl EventHandler for Handler {
 	async fn dispatch(&self, ctx: &Context, event: &FullEvent) {
 		match event {
 			FullEvent::Message { new_message, .. } => {
-				if new_message.kind.eq(&MessageType::ThreadCreated)
-					|| new_message
-						.channel_id
-						.eq(&CLIENT_CONFIG.discord_public_channel_id)
-				{
-					if !is_immune_from_message_deletion(&ctx, &new_message).await {
-						if let Err(message_delete_error) = new_message.delete(&ctx.http, None).await
-						{
-							error!("Unable to delete message: {}", message_delete_error);
-						}
-					}
-				}
+				handle_message_interaction(&ctx, &new_message).await;
 			}
 			FullEvent::Ready { data_about_bot, .. } => {
+				REQUESTX_BOT_USER
+					.set(data_about_bot.user.clone())
+					.expect("Unable to set bot user");
 				remove_stale_requests();
 				let user = &data_about_bot.user;
 				info!("{} is connected!", user.name.as_str());
 				let guild_id = GuildId::new(CLIENT_CONFIG.discord_guild_id);
+				init_request_config_message(&ctx, &user).await;
 				init_request_message(&ctx, &user).await;
 				init_verify_message(&ctx, &user).await;
 
@@ -58,7 +54,7 @@ impl EventHandler for Handler {
 							request_level_command::register_request_level(),
 							request_level_command::register_edit_level_request(),
 							request_level_command::register_delete_level_request(),
-							review::register_review(),
+							review_command::register_review(),
 							reviewer::register_add_reviewer(),
 							reviewer::register_remove_reviewer(),
 							send_level::register_send_level(),
@@ -90,7 +86,7 @@ impl EventHandler for Handler {
 							&component_interaction,
 							&component_interaction_id,
 						)
-							.await
+						.await
 					}
 				} else {
 					eprintln!("Unknown interaction type")
@@ -116,10 +112,43 @@ async fn is_immune_from_message_deletion(ctx: &Context, message: &Message) -> bo
 	is_maintenance_user || is_bot_user
 }
 
-async fn handle_command_interactions(
-	ctx: &Context,
-	command_interaction: &CommandInteraction,
-) {
+async fn handle_message_interaction(ctx: &Context, message: &Message) {
+	if message.kind.eq(&MessageType::ThreadCreated)
+		|| message
+			.channel_id
+			.eq(&CLIENT_CONFIG.discord_public_channel_id)
+	{
+		if !is_immune_from_message_deletion(&ctx, &message).await {
+			if let Err(message_delete_error) = message.delete(&ctx.http, None).await {
+				error!("Unable to delete message: {}", message_delete_error);
+			}
+		}
+	}
+
+	if let Some(thread) = get_if_message_thread(&ctx, &message).await {
+		if let Err(message_delete_error) = message.delete(&ctx.http, None).await {
+			error!("Unable to delete message: {}", message_delete_error);
+		}
+		if thread
+			.parent_id
+			.eq(&CLIENT_CONFIG.discord_requests_channel_id)
+		{
+			review_message_handler::post_level_review(&ctx, &message, thread.base.name.as_str())
+				.await
+		}
+	}
+}
+
+async fn get_if_message_thread(ctx: &Context, message: &Message) -> Option<GuildThread> {
+	message
+		.channel(&ctx.http)
+		.await
+		.map_err(|get_chanel_error| error!("Unable to get channel: {}", get_chanel_error))
+		.map(|channel| channel.thread())
+		.unwrap_or(None)
+}
+
+async fn handle_command_interactions(ctx: &Context, command_interaction: &CommandInteraction) {
 	match command_interaction.data.name.as_str() {
 		"view-cooldown" => user_commands::run_view_cooldown(&ctx, &command_interaction).await,
 		"view-user-cooldown" => {
@@ -134,7 +163,7 @@ async fn handle_command_interactions(
 		"delete-level-request" => {
 			request_level_command::run_delete_level_request(&ctx, &command_interaction).await
 		}
-		"review" => review::post_level_review(&ctx, &command_interaction).await,
+		"review" => review_command::post_level_review(&ctx, &command_interaction).await,
 		"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command_interaction).await,
 		"remove-reviewer" => reviewer::run_remove_reviewer(&ctx, &command_interaction).await,
 		"send-level" => send_level::run_send_level(&ctx, &command_interaction).await,
@@ -150,7 +179,6 @@ async fn handle_button_interactions(
 	button_interaction: &ComponentInteraction,
 	button_interaction_id: &str,
 ) {
-
 	match button_interaction_id {
 		"request-level-button" => {
 			if let Err(create_modal_error) = button_interaction
@@ -166,8 +194,14 @@ async fn handle_button_interactions(
 				);
 			}
 		}
-		"verify-request-level-yes-button" => request_level_modal::run_request_level_modal_button_submit(&ctx, &button_interaction).await,
-		"verify-request-level-no-button" => request_level_modal::run_request_level_modal_button_cancel(&ctx, &button_interaction).await,
+		"verify-request-level-yes-button" => {
+			request_level_modal::run_request_level_modal_button_submit(&ctx, &button_interaction)
+				.await
+		}
+		"verify-request-level-no-button" => {
+			request_level_modal::run_request_level_modal_button_cancel(&ctx, &button_interaction)
+				.await
+		}
 		"init-gd-account-link-button" => {
 			if let Err(create_modal_error) = button_interaction
 				.create_response(

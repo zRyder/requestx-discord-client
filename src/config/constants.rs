@@ -6,3 +6,4 @@ pub static APPLICATION_JSON: &'static str = "application/json";
 pub static YOUTUBE_LINK_REGEX: &'static str = "^((?:https?:)?\\/\\/)?((?:www|m)\\.)?((?:youtube(-nocookie)?\\.com|youtu.be))(\\/(?:[\\w\\-]+\\?v=|embed\\/|v\\/)?)([\\w\\-]+)(\\S+)?$";
 pub static EMPTY_STRING: String = String::new();
 pub static LEVEL_REQUEST_MODAL_REQUEST_VALID_UNTIL: Duration = Duration::minutes(1);
+pub static REVIEW_LOG_MESSAGE_LIMIT: usize = 1500;

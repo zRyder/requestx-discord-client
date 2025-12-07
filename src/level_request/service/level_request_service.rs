@@ -21,13 +21,6 @@ impl<'a> LevelRequestService<'a> {
 		}
 	}
 
-	pub async fn get_level_request(
-		&self,
-		level_id: u64,
-	) -> Result<Option<LevelRequest>, LevelRequestError> {
-		self.requestx_api_client.get_level_request(level_id).await
-	}
-
 	pub async fn get_gd_level_info(
 		&self,
 		level_id: u64,
