@@ -226,6 +226,19 @@ pub async fn invoke_component_ephemeral(
 	}
 }
 
+pub async fn invoke_message_response(
+	content: &str,
+	ctx: &Context,
+	user: &User,
+) {
+	let message = CreateMessage::new()
+		.content(content);
+	
+	if let Err(dm_error) = user.id.dm(&ctx.http, message).await {
+		error!("Cannot dm user: {dm_error}");
+	}
+}
+
 async fn discord_log(mut rx: mpsc::Receiver<(String, Context)>) {
 	while let Some(data) = rx.recv().await {
 		if let Err(logger_error) = GenericChannelId::new(CLIENT_CONFIG.discord_log_channel_id)
