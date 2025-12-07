@@ -16,7 +16,7 @@ use crate::{
 		level_review::{LevelReview, UpdateLevelReviewMessageId},
 		level_review_error::LevelReviewError,
 	},
-	request_manager::model::request_manager::UpdateRequestManagerRequest,
+	request_manager::model::request_manager::RequestConfig,
 	reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError},
 	send_level::model::{
 		moderator::{SendLevelRequest, SentLevel},
@@ -695,9 +695,51 @@ impl<'a> RequestXApiClient<'a> {
 		}
 	}
 
+	pub async fn get_request_config(&self) -> Result<RequestConfig, LevelRequestError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
+		let response = self
+			.web_client
+			.get(format!(
+				"{}{}",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.update_request_manager
+			))
+			.headers(headers)
+			.send()
+			.await
+			.map_err(|get_request_manager_error| {
+				error!(
+					"Error making API call for get request manager to RequestX API: {}",
+					get_request_manager_error
+				);
+				LevelRequestError::RequestError
+			})?;
+
+		let status_code = response.status();
+		let response_body = response.text().await.unwrap();
+
+		if status_code.is_client_error() || status_code.is_server_error() {
+			Err(RequestXApiClient::handle_level_request_error(
+				status_code,
+				response_body,
+			))
+		} else {
+			let request_config: RequestConfig =
+				serde_json::from_str(&response_body).map_err(|deserialize_error| {
+					error!(
+						"Unable to deserialize OK response from RequestX API: {}",
+						deserialize_error
+					);
+					LevelRequestError::RequestError
+				})?;
+			Ok(request_config)
+		}
+	}
+
 	pub async fn update_request_manager(
 		&self,
-		update_request_manager: &UpdateRequestManagerRequest,
+		update_request_manager: &RequestConfig,
 	) -> Result<(), LevelRequestError> {
 		let serialized_update_request_manager = serde_json::to_string(&update_request_manager)
 			.map_err(|serialize_error| {

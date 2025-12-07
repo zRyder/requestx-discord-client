@@ -46,7 +46,8 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 			RoleId::new(CLIENT_CONFIG.discord_reviewer_role_id),
 		)
 		.await
-		.unwrap() {
+		.unwrap()
+	{
 		discord_ephemeral_message = "Forbidden";
 		return invoke_command_ephemeral(discord_ephemeral_message, &ctx, &command).await;
 	}
@@ -71,7 +72,8 @@ pub async fn post_level_review(ctx: &Context, command: &CommandInteraction) {
 
 	let level_review = match level_review_service
 		.get_level_review(reviewer_discord_user_id, level_id)
-		.await {
+		.await
+	{
 		Ok(Some(mut existing_level_review)) => {
 			existing_level_review.review_contents = review_contents;
 			existing_level_review
@@ -197,7 +199,8 @@ async fn update_level_review_message_id<'a>(
 	);
 	if let Err(update_level_review_message_id) = level_review_service
 		.update_level_review_message_id(update_level_review_message_id_request)
-		.await {
+		.await
+	{
 		error!(
 			"Unable to update level review message id: {:?}",
 			update_level_review_message_id

@@ -1,7 +1,7 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Debug)]
-pub struct UpdateRequestManagerRequest {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RequestConfig {
 	#[serde(rename = "duration")]
 	pub duration_in_minutes: Option<u64>,
 	pub enable_requests: Option<bool>,
@@ -9,7 +9,7 @@ pub struct UpdateRequestManagerRequest {
 	pub allow_non_user_created_levels: Option<bool>,
 }
 
-impl UpdateRequestManagerRequest {
+impl RequestConfig {
 	pub fn new(
 		duration_in_minutes: Option<u64>,
 		enable_requests: Option<bool>,

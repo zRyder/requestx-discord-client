@@ -1,22 +1,30 @@
 use crate::config::constants::{EMPTY_STRING, LEVEL_REQUEST_MODAL_REQUEST_VALID_UNTIL};
 use crate::level_request::model::level_request::{LevelRequest, UpdateLevelRequestMessageId};
+use crate::level_request::model::level_request_modal_request::LevelRequestModalRequest;
 use crate::level_request::service::level_request_service::LevelRequestService;
 use crate::send_level::model::request_score::RequestRating;
-use crate::serenity::discord::{create_thread, get_verify_level_request_buttons, invoke_component_ephemeral, invoke_modal_ephemeral, log_action_to_discord, log_error_to_discord, send_level_request_message_to_discord};
+use crate::serenity::discord::{
+	create_thread, get_verify_level_request_buttons, invoke_component_ephemeral,
+	invoke_modal_ephemeral, log_action_to_discord, log_error_to_discord,
+	send_level_request_message_to_discord,
+};
 use crate::serenity::modals::extract_modal_components;
+use chrono::Utc;
 use log::{error, warn};
-use serenity::all::{ComponentInteraction, Context, CreateActionRow, CreateInteractionResponse, CreateInteractionResponseMessage, ModalInteraction};
+use serenity::all::{
+	ComponentInteraction, Context, CreateActionRow, CreateInteractionResponse,
+	CreateInteractionResponseMessage, ModalInteraction,
+};
 use serenity::builder::CreateComponent;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
-use chrono::Utc;
 use tokio::sync::{Mutex, MutexGuard};
 use tokio::time::interval;
-use crate::level_request::model::level_request_modal_request::LevelRequestModalRequest;
 
-static REQUEST_BUFFER: OnceLock<Arc<Mutex<HashMap<u64, LevelRequestModalRequest>>>> = OnceLock::new();
+static REQUEST_BUFFER: OnceLock<Arc<Mutex<HashMap<u64, LevelRequestModalRequest>>>> =
+	OnceLock::new();
 
 pub async fn run_verify_request(ctx: &Context, modal_interaction: &ModalInteraction) {
 	let modal_inputs = extract_modal_components(
@@ -85,10 +93,13 @@ pub async fn run_verify_request(ctx: &Context, modal_interaction: &ModalInteract
 		}
 	};
 	let mut request_buffer = get_request_buffer().await;
-	request_buffer.insert(discord_user_id, LevelRequestModalRequest::new(
-		level_request,
-		Utc::now() + LEVEL_REQUEST_MODAL_REQUEST_VALID_UNTIL
-	));
+	request_buffer.insert(
+		discord_user_id,
+		LevelRequestModalRequest::new(
+			level_request,
+			Utc::now() + LEVEL_REQUEST_MODAL_REQUEST_VALID_UNTIL,
+		),
+	);
 	drop(request_buffer);
 
 	let components = &[CreateComponent::ActionRow(CreateActionRow::Buttons(
@@ -109,7 +120,10 @@ pub async fn run_verify_request(ctx: &Context, modal_interaction: &ModalInteract
 	};
 }
 
-pub async fn run_request_level_modal_button_submit(ctx: &Context, button_interaction: &ComponentInteraction) {
+pub async fn run_request_level_modal_button_submit(
+	ctx: &Context,
+	button_interaction: &ComponentInteraction,
+) {
 	let discord_user_id = button_interaction.user.id.get();
 	let level_request: LevelRequest;
 	let mut request_buffer = REQUEST_BUFFER
@@ -117,19 +131,25 @@ pub async fn run_request_level_modal_button_submit(ctx: &Context, button_interac
 		.lock()
 		.await;
 
-	level_request = if let Some(level_request_modal_request) = request_buffer.remove(&discord_user_id) {
-		level_request_modal_request.level_request
-	} else {
-		error!("No request in buffer for user {}", discord_user_id);
-		return invoke_component_ephemeral("Unable to make level request.", &ctx, &button_interaction)
+	level_request =
+		if let Some(level_request_modal_request) = request_buffer.remove(&discord_user_id) {
+			level_request_modal_request.level_request
+		} else {
+			error!("No request in buffer for user {}", discord_user_id);
+			return invoke_component_ephemeral(
+				"Unable to make level request.",
+				&ctx,
+				&button_interaction,
+			)
 			.await;
-	};
+		};
 	drop(request_buffer);
 	let level_request_service = LevelRequestService::new();
 
 	match level_request_service
 		.level_request_service(&level_request)
-		.await {
+		.await
+	{
 		Ok(requested_level) => {
 			match send_level_request_message_to_discord(&ctx, &requested_level).await {
 				Ok(message_data) => {
@@ -193,7 +213,10 @@ pub async fn run_request_level_modal_button_submit(ctx: &Context, button_interac
 	}
 }
 
-pub async fn run_request_level_modal_button_cancel(ctx: &Context, button_interaction: &ComponentInteraction) {
+pub async fn run_request_level_modal_button_cancel(
+	ctx: &Context,
+	button_interaction: &ComponentInteraction,
+) {
 	let discord_user_id = button_interaction.user.id.get();
 	let mut request_buffer = REQUEST_BUFFER
 		.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
@@ -202,8 +225,14 @@ pub async fn run_request_level_modal_button_cancel(ctx: &Context, button_interac
 
 	request_buffer.remove(&discord_user_id);
 	drop(request_buffer);
-	if let Err(acknowledge_error) = button_interaction.create_response(&ctx.http, CreateInteractionResponse::Acknowledge).await {
-		error!("Cannot respond to request level cancellation: {}", acknowledge_error);
+	if let Err(acknowledge_error) = button_interaction
+		.create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
+		.await
+	{
+		error!(
+			"Cannot respond to request level cancellation: {}",
+			acknowledge_error
+		);
 	}
 }
 
@@ -216,10 +245,9 @@ pub fn remove_stale_requests() {
 			let now = Utc::now();
 			let mut request_buffer = get_request_buffer().await;
 
-			request_buffer.retain(
-				|_, level_request_modal_request|
-					level_request_modal_request.is_valid_request(now)
-			);
+			request_buffer.retain(|_, level_request_modal_request| {
+				level_request_modal_request.is_valid_request(now)
+			});
 		}
 	});
 }

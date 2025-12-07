@@ -1,15 +1,20 @@
+use crate::config::client_config::CLIENT_CONFIG;
+use crate::config::discord_config::REQUESTX_BOT_USER;
+use crate::serenity::discord::{extract_command_options, get_request_level_config_embed};
+use crate::{
+	request_manager,
+	request_manager::{
+		model::request_manager::RequestConfig,
+		service::request_manager_service::RequestConfigService,
+	},
+	serenity::discord::invoke_command_ephemeral,
+};
+use log::error;
+use serenity::all::{EditMessage, GenericChannelId, GetMessages, Message};
+use serenity::builder::CreateMessage;
 use serenity::{
 	all::{CommandInteraction, CommandOptionType, Context},
 	builder::{CreateCommand, CreateCommandOption},
-};
-
-use crate::serenity::discord::extract_command_options;
-use crate::{
-	request_manager::{
-		model::request_manager::UpdateRequestManagerRequest,
-		service::request_manager_service::RequestManagerService,
-	},
-	serenity::discord::invoke_command_ephemeral,
 };
 
 pub fn register_request_manager<'a>() -> CreateCommand<'a> {
@@ -64,20 +69,21 @@ pub async fn run_request_manager(ctx: &Context, command: &CommandInteraction) {
 		None
 	};
 
-	let update_request_manager_request = UpdateRequestManagerRequest::new(
+	let update_request_manager_request = RequestConfig::new(
 		duration_in_minutes,
 		enable_requests,
 		enable_gd_requests,
 		allow_non_user_created_levels,
 	);
 
-	let service = RequestManagerService::new();
+	let service = RequestConfigService::new();
 
 	match service
-		.update_request_manager(&update_request_manager_request)
+		.update_request_config(&update_request_manager_request)
 		.await
 	{
 		Ok(()) => {
+			send_or_edit_request_config_message(&ctx).await;
 			invoke_command_ephemeral(
 				&format!(
 					"{}.",
@@ -94,13 +100,20 @@ pub async fn run_request_manager(ctx: &Context, command: &CommandInteraction) {
 	}
 }
 
-fn build_request_manager_update_string(
-	update_request_manager_request: &UpdateRequestManagerRequest,
-) -> String {
+fn build_request_manager_update_string(update_request_manager_request: &RequestConfig) -> String {
 	let mut command_ephemeral_content: Vec<String> = Vec::new();
 
 	if let Some(duration_in_minutes) = update_request_manager_request.duration_in_minutes {
-		command_ephemeral_content.push(format_cooldown_duration_string(duration_in_minutes));
+		if let Some(cooldown_string) =
+			request_manager::format_cooldown_duration_string(duration_in_minutes)
+		{
+			command_ephemeral_content.push(format!(
+				"Request cooldown has been set to **{}**",
+				cooldown_string
+			));
+		} else {
+			command_ephemeral_content.push("Request cooldown has been **disabled**".to_string());
+		}
 	}
 	if let Some(enable_requests) = update_request_manager_request.enable_requests {
 		command_ephemeral_content.push(format!(
@@ -138,38 +151,67 @@ fn build_request_manager_update_string(
 	command_ephemeral_content.join(".\n")
 }
 
-fn format_cooldown_duration_string(cooldown_duration_in_minutes: u64) -> String {
-	let mut content = String::new();
-	if cooldown_duration_in_minutes == 0 {
-		content.push_str("Request cooldown has been **disabled**");
+async fn send_or_edit_request_config_message(ctx: &Context) {
+	let request_config_channel =
+		GenericChannelId::new(CLIENT_CONFIG.discord_request_config_channel_id);
+	let request_config_service = RequestConfigService::new();
+	let request_config = request_config_service
+		.get_request_config()
+		.await
+		.unwrap_or_else(|get_request_config_error| {
+			error!(
+				"Unable to retrieve request config: {}",
+				get_request_config_error
+			);
+			panic!(
+				"Unable to retrieve request config: {}",
+				get_request_config_error
+			);
+		});
+
+	if let Some(mut existing_request_config_message) =
+		get_request_config_message(&ctx, &request_config_channel).await
+	{
+		let request_config_message = EditMessage::new().embed(get_request_level_config_embed(
+			REQUESTX_BOT_USER.get().unwrap(),
+			&request_config,
+		));
+
+		if let Err(edit_message_error) = existing_request_config_message
+			.edit(&ctx.http, request_config_message)
+			.await
+		{
+			error!(
+				"Unable to edit request config message: {}",
+				edit_message_error
+			);
+		}
 	} else {
-		content.push_str("Request cooldown has been set to ");
-		let days = cooldown_duration_in_minutes / 1440;
-		let hours = (cooldown_duration_in_minutes % 1440) / 60;
-		let minutes = cooldown_duration_in_minutes % 60;
-		let mut time_parts = Vec::new();
+		let request_config_message = CreateMessage::new().embed(get_request_level_config_embed(
+			REQUESTX_BOT_USER.get().unwrap(),
+			&request_config,
+		));
 
-		push_time_unit(&mut time_parts, days, "day", "days");
-		push_time_unit(&mut time_parts, hours, "hour", "hours");
-		push_time_unit(&mut time_parts, minutes, "minute", "minutes");
-
-		let duration_str = if time_parts.len() > 1 {
-			let last_unit = time_parts.pop().unwrap();
-			let remaining_time_units = time_parts.join(", ");
-			format!("{} and {}", remaining_time_units, last_unit)
-		} else {
-			time_parts.join(", ")
-		};
-		content.push_str(&format!("{}", duration_str));
-	}
-
-	content
+		if let Err(edit_message_error) = request_config_channel
+			.send_message(&ctx.http, request_config_message)
+			.await
+		{
+			error!(
+				"Unable to send request config message: {}",
+				edit_message_error
+			);
+		}
+	};
 }
 
-fn push_time_unit(time_parts: &mut Vec<String>, value: u64, singular: &str, plural: &str) {
-	if value == 1 {
-		time_parts.push(format!("**1 {}**", singular));
-	} else if value > 1 {
-		time_parts.push(format!("**{} {}**", value, plural));
-	}
+async fn get_request_config_message(
+	ctx: &Context,
+	request_config_channel: &GenericChannelId,
+) -> Option<Message> {
+	request_config_channel
+		.messages(&ctx.http, GetMessages::new())
+		.await
+		.ok()?
+		.into_iter()
+		.next()
 }

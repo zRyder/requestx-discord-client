@@ -1,7 +1,10 @@
 use std::str::FromStr;
 
 use log::error;
-use serenity::all::{CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption, GenericChannelId, Mention, MessageBuilder, UserId};
+use serenity::all::{
+	CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+	GenericChannelId, Mention, MessageBuilder, UserId,
+};
 
 use crate::{
 	config::client_config::CLIENT_CONFIG,
@@ -105,7 +108,8 @@ pub async fn run_send_level(ctx: &Context, command: &CommandInteraction) {
 
 			match GenericChannelId::new(sent_level.level_request.discord_message_id.unwrap())
 				.say(&ctx.http, &send_level_message.build())
-				.await {
+				.await
+			{
 				Ok(_msg) => {
 					content = "Level has been sent!".to_string();
 					log_action_to_discord(
@@ -211,7 +215,8 @@ fn build_notify_string(sent_level: &SentLevel) -> String {
 			format!(
 				"\n{}",
 				Mention::User(UserId::new(sent_level.level_request.discord_user_id))
-			).as_str()
+			)
+			.as_str(),
 		);
 	}
 
