@@ -33,7 +33,9 @@ impl EventHandler for Handler {
 	async fn dispatch(&self, ctx: &Context, event: &FullEvent) {
 		match event {
 			FullEvent::Message { new_message, .. } => {
-				handle_message_interaction(&ctx, &new_message).await;
+				if new_message.author.id.get().ne(&CLIENT_CONFIG.discord_app_id) {
+					handle_message_interaction(&ctx, &new_message).await;
+				}
 			}
 			FullEvent::Ready { data_about_bot, .. } => {
 				REQUESTX_BOT_USER
