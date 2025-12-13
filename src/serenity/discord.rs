@@ -323,7 +323,7 @@ pub fn get_request_level_config_embed<'a>(
 		MessageBuilder::new().push_bold("CANNOT").build()
 	};
 	let gd_request_enabled = if request_config
-		.enable_gd_requests
+		.enable_requests
 		.is_some_and(|enable_gd_requests| enable_gd_requests)
 	{
 		MessageBuilder::new().push_bold("WILL").build()
