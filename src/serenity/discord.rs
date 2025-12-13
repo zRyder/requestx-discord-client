@@ -295,7 +295,7 @@ pub fn get_request_level_config_embed<'a>(
 	request_level_message_embed = request_level_message_embed.timestamp(Utc::now());
 
 	let requests_enabled_string = if request_config
-		.enable_gd_requests
+		.enable_requests
 		.is_some_and(|requests_enabled| requests_enabled)
 	{
 		MessageBuilder::new().push_bold("Enabled").build()
@@ -323,7 +323,7 @@ pub fn get_request_level_config_embed<'a>(
 		MessageBuilder::new().push_bold("CANNOT").build()
 	};
 	let gd_request_enabled = if request_config
-		.enable_requests
+		.enable_gd_requests
 		.is_some_and(|enable_gd_requests| enable_gd_requests)
 	{
 		MessageBuilder::new().push_bold("WILL").build()
