@@ -33,7 +33,6 @@ pub async fn run_verify_request(ctx: &Context, modal_interaction: &ModalInteract
 			"level-id".to_string(),
 			"request-rating".to_string(),
 			"video-link".to_string(),
-			"request-feedback".to_string(),
 			"notify".to_string(),
 		],
 	);
@@ -42,29 +41,22 @@ pub async fn run_verify_request(ctx: &Context, modal_interaction: &ModalInteract
 		.unwrap_or(&EMPTY_STRING)
 		.parse::<u64>()
 	else {
-		return handle_input_parse_error("Request Feedback", &ctx, &modal_interaction).await;
+		return handle_input_parse_error("Level ID", &ctx, &modal_interaction).await;
 	};
 	let Ok(request_rating) = modal_inputs
 		.get("request-rating")
 		.unwrap_or(&EMPTY_STRING)
 		.parse::<RequestRating>()
 	else {
-		return handle_input_parse_error("Request Feedback", &ctx, &modal_interaction).await;
+		return handle_input_parse_error("Requested Rating", &ctx, &modal_interaction).await;
 	};
 	let video_link = modal_inputs.get("video-link").unwrap_or(&EMPTY_STRING);
-	let Ok(has_requested_feedback) = modal_inputs
-		.get("request-feedback")
-		.unwrap_or(&EMPTY_STRING)
-		.parse::<bool>()
-	else {
-		return handle_input_parse_error("Request Feedback", &ctx, &modal_interaction).await;
-	};
 	let Ok(notify) = modal_inputs
 		.get("notify")
 		.unwrap_or(&EMPTY_STRING)
 		.parse::<bool>()
 	else {
-		return handle_input_parse_error("Request Feedback", &ctx, &modal_interaction).await;
+		return handle_input_parse_error("Notfiy", &ctx, &modal_interaction).await;
 	};
 	let discord_user_id = modal_interaction.user.id.get();
 	let level_request = LevelRequest::new(
@@ -72,7 +64,7 @@ pub async fn run_verify_request(ctx: &Context, modal_interaction: &ModalInteract
 		discord_user_id,
 		request_rating,
 		video_link.to_string(),
-		has_requested_feedback,
+		false,
 		notify,
 	);
 	let level_request_service = LevelRequestService::new();
@@ -105,7 +97,7 @@ pub async fn run_verify_request(ctx: &Context, modal_interaction: &ModalInteract
 	let components = &[CreateComponent::ActionRow(CreateActionRow::Buttons(
 		Cow::Owned(get_verify_level_request_buttons()),
 	))];
-	let test = CreateInteractionResponse::Message(
+	let request_verification_message = CreateInteractionResponse::Message(
 		CreateInteractionResponseMessage::new()
 			.ephemeral(true)
 			.content(format!(
@@ -115,7 +107,7 @@ pub async fn run_verify_request(ctx: &Context, modal_interaction: &ModalInteract
 			.components(components),
 	);
 
-	if let Err(err) = modal_interaction.create_response(&ctx.http, test).await {
+	if let Err(err) = modal_interaction.create_response(&ctx.http, request_verification_message).await {
 		error!("Cannot respond to modal: {err}");
 	};
 }
@@ -148,8 +140,7 @@ pub async fn run_request_level_modal_button_submit(
 
 	match level_request_service
 		.level_request_service(&level_request)
-		.await
-	{
+		.await {
 		Ok(requested_level) => {
 			match send_level_request_message_to_discord(&ctx, &requested_level).await {
 				Ok(message_data) => {
@@ -178,8 +169,7 @@ pub async fn run_request_level_modal_button_submit(
 					};
 					if let Err(error) = level_request_service
 						.update_request_message_id(update_request_message_id)
-						.await
-					{
+						.await {
 						error!("Error updating message ID: {error:?}");
 					}
 				}

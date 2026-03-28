@@ -55,24 +55,7 @@ pub fn get_request_level_modal<'a>() -> CreateModal<'a> {
 	)));
 	rows.push(CreateComponent::Label(
 		CreateLabel::select_menu(
-			"Request feedback on this level request?",
-			CreateSelectMenu::new(
-				"request-feedback",
-				CreateSelectMenuKind::String {
-					options: Cow::Owned(get_yes_no_options()),
-				},
-			)
-			.min_values(1)
-			.max_values(1),
-		)
-		.description(
-			"Select \"Yes\" if you would like to potentially receive feedback on this \
-			level request.",
-		),
-	));
-	rows.push(CreateComponent::Label(
-		CreateLabel::select_menu(
-			"Get notified when a request is reviewed?",
+			"Get notified when a request has been checked?",
 			CreateSelectMenu::new(
 				"notify",
 				CreateSelectMenuKind::String {
@@ -84,7 +67,7 @@ pub fn get_request_level_modal<'a>() -> CreateModal<'a> {
 		)
 		.description(
 			"Select \"Yes\" if you would like to be pinged when your \
-			 request if reviewed or sent",
+			 request has checked",
 		),
 	));
 

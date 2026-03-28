@@ -15,6 +15,7 @@ pub enum LevelRequestError {
 	SerializeError(String),
 	UserOnCooldown(User),
 	RequestNonCreatedLevel,
+	RequestPlatformer,
 	RequestsDisabled,
 	RequestXApiError(ErrorMessage),
 }
@@ -50,6 +51,12 @@ impl Display for LevelRequestError {
 				write!(
 					f,
 					"You cannot request a level that you did not create at this time."
+				)
+			}
+			LevelRequestError::RequestPlatformer => {
+				write!(
+					f,
+					"Platformer level requests are disabled."
 				)
 			}
 			LevelRequestError::RequestsDisabled => {

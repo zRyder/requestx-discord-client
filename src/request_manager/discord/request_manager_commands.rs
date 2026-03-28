@@ -40,6 +40,11 @@ pub fn register_request_manager<'a>() -> CreateCommand<'a> {
 			"allow-non-user-created-levels",
 			"Enable/disable ability to request levels created by the requestor",
 		))
+		.add_option(CreateCommandOption::new(
+			CommandOptionType::Boolean,
+			"allow-platformer-levels",
+			"Enable/disable ability to request platformer levels",
+		))
 }
 
 pub async fn run_request_manager(ctx: &Context, command: &CommandInteraction) {
@@ -62,9 +67,14 @@ pub async fn run_request_manager(ctx: &Context, command: &CommandInteraction) {
 			None
 		};
 	let allow_non_user_created_levels = if let Some(allow_non_user_created_levels_input) =
-		command_map.get("allow-non-user-created-levels")
-	{
+		command_map.get("allow-non-user-created-levels") {
 		Some(allow_non_user_created_levels_input.as_bool().unwrap())
+	} else {
+		None
+	};
+	let allow_platformer_levels = if let Some(allow_platformer_levels_input) =
+		command_map.get("allow-platformer-levels") {
+		Some(allow_platformer_levels_input.as_bool().unwrap())
 	} else {
 		None
 	};
@@ -74,14 +84,14 @@ pub async fn run_request_manager(ctx: &Context, command: &CommandInteraction) {
 		enable_requests,
 		enable_gd_requests,
 		allow_non_user_created_levels,
+		allow_platformer_levels
 	);
 
 	let service = RequestConfigService::new();
 
 	match service
 		.update_request_config(&update_request_manager_request)
-		.await
-	{
+		.await {
 		Ok(()) => {
 			send_or_edit_request_config_message(&ctx).await;
 			invoke_command_ephemeral(
@@ -105,8 +115,7 @@ fn build_request_manager_update_string(update_request_manager_request: &RequestC
 
 	if let Some(duration_in_minutes) = update_request_manager_request.duration_in_minutes {
 		if let Some(cooldown_string) =
-			request_manager::format_cooldown_duration_string(duration_in_minutes)
-		{
+			request_manager::format_cooldown_duration_string(duration_in_minutes) {
 			command_ephemeral_content.push(format!(
 				"Request cooldown has been set to **{}**",
 				cooldown_string
@@ -136,11 +145,21 @@ fn build_request_manager_update_string(update_request_manager_request: &RequestC
 		))
 	}
 	if let Some(allow_non_user_created_levels) =
-		update_request_manager_request.allow_non_user_created_levels
-	{
+		update_request_manager_request.allow_non_user_created_levels {
 		command_ephemeral_content.push(format!(
 			"Allow non user created level requests have been **{}**",
 			if allow_non_user_created_levels {
+				"enabled"
+			} else {
+				"disabled"
+			}
+		))
+	}
+	if let Some(allow_platformer_levels) =
+		update_request_manager_request.allow_platformer_levels {
+		command_ephemeral_content.push(format!(
+			"Platformer level requests have been **{}**",
+			if allow_platformer_levels {
 				"enabled"
 			} else {
 				"disabled"
@@ -170,8 +189,7 @@ async fn send_or_edit_request_config_message(ctx: &Context) {
 		});
 
 	if let Some(mut existing_request_config_message) =
-		get_request_config_message(&ctx, &request_config_channel).await
-	{
+		get_request_config_message(&ctx, &request_config_channel).await {
 		let request_config_message = EditMessage::new().embed(get_request_level_config_embed(
 			REQUESTX_BOT_USER.get().unwrap(),
 			&request_config,
@@ -179,8 +197,7 @@ async fn send_or_edit_request_config_message(ctx: &Context) {
 
 		if let Err(edit_message_error) = existing_request_config_message
 			.edit(&ctx.http, request_config_message)
-			.await
-		{
+			.await {
 			error!(
 				"Unable to edit request config message: {}",
 				edit_message_error
@@ -194,8 +211,7 @@ async fn send_or_edit_request_config_message(ctx: &Context) {
 
 		if let Err(edit_message_error) = request_config_channel
 			.send_message(&ctx.http, request_config_message)
-			.await
-		{
+			.await {
 			error!(
 				"Unable to send request config message: {}",
 				edit_message_error
