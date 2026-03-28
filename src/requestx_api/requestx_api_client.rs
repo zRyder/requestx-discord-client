@@ -913,9 +913,12 @@ impl<'a> RequestXApiClient<'a> {
 			StatusCode::BAD_REQUEST => {
 				if error_message
 					.message
-					.contains("request a level they did not create")
-				{
+					.contains("request a level they did not create") {
 					LevelRequestError::RequestNonCreatedLevel
+				} else if error_message
+					.message
+					.contains("attempted to request a platformer level") {
+					LevelRequestError::RequestPlatformer
 				} else {
 					LevelRequestError::RequestXApiError(error_message)
 				}

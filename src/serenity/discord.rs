@@ -296,14 +296,12 @@ pub fn get_request_level_config_embed<'a>(
 
 	let requests_enabled_string = if request_config
 		.enable_requests
-		.is_some_and(|requests_enabled| requests_enabled)
-	{
+		.is_some_and(|requests_enabled| requests_enabled) {
 		MessageBuilder::new().push_bold("Enabled").build()
 	} else {
 		MessageBuilder::new().push_bold("Disabled").build()
 	};
-	let request_cooldown_string = if let Some(request_cooldown) = request_config.duration_in_minutes
-	{
+	let request_cooldown_string = if let Some(request_cooldown) = request_config.duration_in_minutes {
 		if let Some(cooldown_string) = format_cooldown_duration_string(request_cooldown) {
 			MessageBuilder::new()
 				.push_bold(cooldown_string.as_str())
@@ -316,8 +314,14 @@ pub fn get_request_level_config_embed<'a>(
 	};
 	let allow_non_user_created_level_requests_string = if request_config
 		.allow_non_user_created_levels
-		.is_some_and(|allow_non_user_created_levels| allow_non_user_created_levels)
-	{
+		.is_some_and(|allow_non_user_created_levels| allow_non_user_created_levels) {
+		MessageBuilder::new().push_bold("CAN").build()
+	} else {
+		MessageBuilder::new().push_bold("CANNOT").build()
+	};
+	let allow_platformer_level_requests_string = if request_config
+		.allow_platformer_levels
+		.is_some_and(|allow_platformer_levels| allow_platformer_levels) {
 		MessageBuilder::new().push_bold("CAN").build()
 	} else {
 		MessageBuilder::new().push_bold("CANNOT").build()
@@ -338,7 +342,7 @@ pub fn get_request_level_config_embed<'a>(
 			false,
 		)
 		.field(
-			"Request cooldown",
+			"Request Cooldown",
 			format!(
 				"The request cooldown is currently: {}",
 				request_cooldown_string
@@ -346,7 +350,7 @@ pub fn get_request_level_config_embed<'a>(
 			false,
 		)
 		.field(
-			"User created level requests",
+			"User Created Level Requests",
 			format!(
 				"You {} request levels that you have not created",
 				allow_non_user_created_level_requests_string
@@ -354,7 +358,15 @@ pub fn get_request_level_config_embed<'a>(
 			false,
 		)
 		.field(
-			"Geometry Dash integration",
+			"Platformer Level Requests",
+			format!(
+				"You {} request platformer levels",
+				allow_platformer_level_requests_string
+			),
+			false,
+		)
+		.field(
+			"Geometry Dash Integration",
 			format!(
 				"Your level requests {} automatically populate with in-game info",
 				gd_request_enabled

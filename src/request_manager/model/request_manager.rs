@@ -7,6 +7,7 @@ pub struct RequestConfig {
 	pub enable_requests: Option<bool>,
 	pub enable_gd_requests: Option<bool>,
 	pub allow_non_user_created_levels: Option<bool>,
+	pub allow_platformer_levels: Option<bool>,
 }
 
 impl RequestConfig {
@@ -15,12 +16,14 @@ impl RequestConfig {
 		enable_requests: Option<bool>,
 		enable_gd_requests: Option<bool>,
 		allow_non_user_created_levels: Option<bool>,
+		allow_platformer_levels: Option<bool>,
 	) -> Self {
 		Self {
 			duration_in_minutes,
 			enable_requests,
 			enable_gd_requests,
 			allow_non_user_created_levels,
+			allow_platformer_levels
 		}
 	}
 }

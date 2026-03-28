@@ -57,6 +57,7 @@ impl From<LevelRequestError> for LevelReviewError {
 			}
 			LevelRequestError::UserOnCooldown(_) => LevelReviewError::RequestError,
 			LevelRequestError::RequestNonCreatedLevel => LevelReviewError::RequestError,
+			LevelRequestError::RequestPlatformer => LevelReviewError::RequestError,
 			LevelRequestError::RequestsDisabled => LevelReviewError::RequestError,
 			LevelRequestError::LevelRequestExists => LevelReviewError::RequestError,
 		}
