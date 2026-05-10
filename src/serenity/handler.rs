@@ -3,22 +3,19 @@ use crate::config::discord_config::{
 };
 use crate::level_request::discord::request_level_modal;
 use crate::level_request::discord::request_level_modal::remove_stale_requests;
-use crate::level_review::discord::review_message_handler;
-use crate::serenity::modals::get_request_level_modal;
+use crate::serenity::modals::{get_edit_level_request_modal, get_request_level_modal};
 use crate::user::discord::{user_buttons, user_modals};
 use crate::{
 	config::{client_config::CLIENT_CONFIG, discord_config::init_verify_message},
 	level_request::discord::request_level_command,
-	level_review::discord::review_command,
 	request_manager::discord::request_manager_commands,
-	reviewer::discord::reviewer,
 	send_level::discord::send_level,
 	serenity::modals::get_init_gd_account_link_modal,
 	user::discord::user_commands,
 };
 use async_trait::async_trait;
 use log::{error, info};
-use serenity::all::{CommandInteraction, FullEvent, GuildThread, ModalInteraction, RoleId};
+use serenity::all::{CommandInteraction, FullEvent, ModalInteraction, RoleId};
 use serenity::{
 	all::{
 		ComponentInteraction, CreateInteractionResponse, GuildId, Interaction, Message, MessageType,
@@ -56,9 +53,7 @@ impl EventHandler for Handler {
 							request_level_command::register_request_level(),
 							request_level_command::register_edit_level_request(),
 							request_level_command::register_delete_level_request(),
-							review_command::register_review(),
-							reviewer::register_add_reviewer(),
-							reviewer::register_remove_reviewer(),
+							request_level_command::register_send_rated_level_requests(),
 							send_level::register_send_level(),
 							request_manager_commands::register_request_manager(),
 							user_commands::register_view_cooldown(),
@@ -126,28 +121,6 @@ async fn handle_message_interaction(ctx: &Context, message: &Message) {
 			}
 		}
 	}
-
-	if let Some(thread) = get_if_message_thread(&ctx, &message).await {
-		if let Err(message_delete_error) = message.delete(&ctx.http, None).await {
-			error!("Unable to delete message: {}", message_delete_error);
-		}
-		if thread
-			.parent_id
-			.eq(&CLIENT_CONFIG.discord_requests_channel_id)
-		{
-			review_message_handler::post_level_review(&ctx, &message, thread.base.name.as_str())
-				.await
-		}
-	}
-}
-
-async fn get_if_message_thread(ctx: &Context, message: &Message) -> Option<GuildThread> {
-	message
-		.channel(&ctx.http)
-		.await
-		.map_err(|get_chanel_error| error!("Unable to get channel: {}", get_chanel_error))
-		.map(|channel| channel.thread())
-		.unwrap_or(None)
 }
 
 async fn handle_command_interactions(ctx: &Context, command_interaction: &CommandInteraction) {
@@ -165,9 +138,9 @@ async fn handle_command_interactions(ctx: &Context, command_interaction: &Comman
 		"delete-level-request" => {
 			request_level_command::run_delete_level_request(&ctx, &command_interaction).await
 		}
-		"review" => review_command::post_level_review(&ctx, &command_interaction).await,
-		"add-reviewer" => reviewer::run_add_reviewer(&ctx, &command_interaction).await,
-		"remove-reviewer" => reviewer::run_remove_reviewer(&ctx, &command_interaction).await,
+		"send-rated-level-requests" => {
+			request_level_command::run_send_rated_level_requests(&ctx, &command_interaction).await
+		}
 		"send-level" => send_level::run_send_level(&ctx, &command_interaction).await,
 		"request-manager" => {
 			request_manager_commands::run_request_manager(&ctx, &command_interaction).await
@@ -187,6 +160,20 @@ async fn handle_button_interactions(
 				.create_response(
 					&ctx.http,
 					CreateInteractionResponse::Modal(get_request_level_modal()),
+				)
+				.await
+			{
+				error!(
+					"Unable to create request level modal: {}",
+					create_modal_error
+				);
+			}
+		}
+		"edit-level-button" => {
+			if let Err(create_modal_error) = button_interaction
+				.create_response(
+					&ctx.http,
+					CreateInteractionResponse::Modal(get_edit_level_request_modal()),
 				)
 				.await
 			{
@@ -232,6 +219,9 @@ async fn handle_modal_interactions(ctx: &Context, modal_interaction: &ModalInter
 		}
 		"request-level-modal" => {
 			request_level_modal::run_verify_request(&ctx, &modal_interaction).await
+		}
+		"edit-level-request-modal" => {
+			request_level_modal::run_edit_level_request_modal(&ctx, &modal_interaction).await
 		}
 		_ => println!("Unreachable"),
 	};

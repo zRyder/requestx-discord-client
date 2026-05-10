@@ -1,5 +1,6 @@
+use std::borrow::Cow;
 use crate::config::constants::{EMPTY_STRING, LEVEL_REQUEST_MODAL_REQUEST_VALID_UNTIL};
-use crate::level_request::model::level_request::{LevelRequest, UpdateLevelRequestMessageId};
+use crate::level_request::model::level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId};
 use crate::level_request::model::level_request_modal_request::LevelRequestModalRequest;
 use crate::level_request::service::level_request_service::LevelRequestService;
 use crate::send_level::model::request_score::RequestRating;
@@ -11,12 +12,7 @@ use crate::serenity::discord::{
 use crate::serenity::modals::extract_modal_components;
 use chrono::Utc;
 use log::{error, warn};
-use serenity::all::{
-	ComponentInteraction, Context, CreateActionRow, CreateInteractionResponse,
-	CreateInteractionResponseMessage, ModalInteraction,
-};
-use serenity::builder::CreateComponent;
-use std::borrow::Cow;
+use serenity::all::{ComponentInteraction, Context, CreateActionRow, CreateComponent, CreateInteractionResponse, CreateInteractionResponseMessage, ModalInteraction};
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -224,6 +220,85 @@ pub async fn run_request_level_modal_button_cancel(
 			acknowledge_error
 		);
 	}
+}
+
+pub async fn run_edit_level_request_modal(ctx: &Context, modal_interaction: &ModalInteraction) {
+	let modal_inputs = extract_modal_components(
+		&modal_interaction,
+		vec![
+			"level-id".to_string(),
+			"request-rating".to_string(),
+			"video-link".to_string(),
+			"notify".to_string(),
+		],
+	);
+	let Ok(level_id) = modal_inputs
+		.get("level-id")
+		.unwrap_or(&EMPTY_STRING)
+		.parse::<u64>()
+	else {
+		return handle_input_parse_error("Level ID", &ctx, &modal_interaction).await;
+	};
+	let request_rating = match modal_inputs
+		.get("request-rating")
+		.map(|input| input.parse::<RequestRating>()) {
+		None => None,
+		Some(Ok(request_rating)) => Some(request_rating),
+		Some(Err(_)) => return handle_input_parse_error("Requested Rating", &ctx, &modal_interaction).await
+	};
+	let video_link = modal_inputs.get("video-link")
+		.cloned()
+		.filter(|input| !input.is_empty());
+	let notify = match modal_inputs
+		.get("notify")
+		.map(|input| input.parse::<bool>()) {
+		None => None,
+		Some(Ok(notify)) => Some(notify),
+		Some(Err(_)) => return handle_input_parse_error("Notfiy", &ctx, &modal_interaction).await
+	};
+	let discord_user_id = modal_interaction.user.id.get();
+	let update_level_request = UpdateLevelRequest::new(
+		discord_user_id,
+		level_id,
+		request_rating,
+		video_link,
+		None,
+		notify,
+	);
+	let level_request_service = LevelRequestService::new();
+
+	let content: String;
+	match level_request_service.update_level_request(update_level_request).await {
+		Ok(updated_level_request) => {
+			if let Err(edit_message_error) =
+				send_level_request_message_to_discord(&ctx, &updated_level_request).await
+			{
+				error!(
+					"Unable to edit level request message: {}",
+					edit_message_error
+				);
+
+				content = "Unable to edit level request message.".to_string();
+			} else {
+				log_action_to_discord(
+					&modal_interaction.user,
+					"edited a level request",
+					Some(&updated_level_request),
+					&ctx,
+				)
+					.await;
+
+				content = "Level request has been edited successfully!".to_string();
+			}
+		}
+		Err(error) => {
+			content = error.to_string();
+			log_error_to_discord(&modal_interaction.user, "editing a level request", &error, None, &ctx)
+				.await;
+		}
+	}
+
+	invoke_modal_ephemeral(&content, &ctx, &modal_interaction).await;
 }
 
 pub fn remove_stale_requests() {

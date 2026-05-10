@@ -1,8 +1,6 @@
 use chrono::Utc;
 use log::error;
-use serenity::all::{
-	ButtonStyle, ComponentInteraction, CreateButton, GenericChannelId, MessageId, ModalInteraction,
-};
+use serenity::all::{ButtonStyle, ComponentInteraction, CreateButton, GenericChannelId, Mention, MessageId, ModalInteraction, UserId};
 use serenity::{
 	all::{
 		ChannelId, CommandDataOptionValue, CommandInteraction, Context, CreateEmbed,
@@ -21,6 +19,7 @@ use crate::{
 	config::client_config::CLIENT_CONFIG, level_request::model::level_request::LevelRequest,
 	send_level::model::request_score::LevelLength,
 };
+use crate::send_level::model::moderator::{SentLevel, SuggestedScore};
 
 pub fn extract_command_options(
 	command: &CommandInteraction,
@@ -230,14 +229,6 @@ pub async fn invoke_component_ephemeral(
 	}
 }
 
-pub async fn invoke_message_response(content: &str, ctx: &Context, user: &User) {
-	let message = CreateMessage::new().content(content);
-
-	if let Err(dm_error) = user.id.dm(&ctx.http, message).await {
-		error!("Cannot dm user: {dm_error}");
-	}
-}
-
 async fn discord_log(mut rx: mpsc::Receiver<(String, Context)>) {
 	while let Some(data) = rx.recv().await {
 		if let Err(logger_error) = GenericChannelId::new(CLIENT_CONFIG.discord_log_channel_id)
@@ -259,7 +250,7 @@ pub async fn log_to_discord(ctx: Context, log_text: String) {
 	drop(tx);
 }
 
-pub fn get_request_level_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
+pub fn get_request_level_embed<'a>(bot_user: &User) -> CreateEmbed<'a> {
 	let mut request_level_message_embed = CreateEmbed::new();
 
 	request_level_message_embed =
@@ -271,7 +262,10 @@ pub fn get_request_level_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
 	request_level_message_embed = request_level_message_embed.field(
 		"",
 		format!(
-			"In order to make a level request, press the button below!\
+			"In order to make a level request, press the \"Request a Level\" button below!\
+			\n\n\
+			If you would instead like to edit an existing level request, press then \
+			\"Edit Existing Level Request\" button. \
 			\n\n\
 			For more help, check <#{}>",
 			1311023368493072514u64
@@ -377,7 +371,7 @@ pub fn get_request_level_config_embed<'a>(
 	request_level_message_embed
 }
 
-pub fn get_init_gd_account_link_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
+pub fn get_init_gd_account_link_embed<'a>(bot_user: &User) -> CreateEmbed<'a> {
 	let mut init_message_embed = CreateEmbed::new();
 
 	init_message_embed = init_message_embed.footer(CreateEmbedFooter::new("init"));
@@ -393,27 +387,14 @@ pub fn get_init_gd_account_link_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
             - Enter your GD username when prompted and press submit\n\
             - Copy the token that will be sent in this channel\n\
             - Make a profile post containing that token\n\
-            - Press the \"Verify GD Account Link\" button in the below embed\n\
+            - Press the \"Verify GD Account Link\" button in the below embed\
             \n\n\
+			Once you have posted the token from the above step \
+			click the \"Verify GD Account Link\" button below.\
+			\n\n\
             If you need assistance, send a DM to <@{}>.",
 			CLIENT_CONFIG.discord_bot_admin_id
 		),
-		false,
-	);
-
-	init_message_embed
-}
-
-pub fn get_verify_gd_account_link_embed(bot_user: &'_ User) -> CreateEmbed<'_> {
-	let mut init_message_embed = CreateEmbed::new();
-
-	init_message_embed = init_message_embed.footer(CreateEmbedFooter::new("verify"));
-	init_message_embed = init_message_embed.author(CreateEmbedAuthor::from(bot_user.clone()));
-	init_message_embed = init_message_embed.timestamp(Utc::now());
-	init_message_embed = init_message_embed.field(
-		"",
-		"Once you have posted the token from the above step \
-		click the \"Verify GD Account Link\" button below.",
 		false,
 	);
 
@@ -429,4 +410,84 @@ pub fn get_verify_level_request_buttons<'a>() -> Vec<CreateButton<'a>> {
 			.label("No")
 			.style(ButtonStyle::Danger),
 	]
+}
+
+pub fn format_public_discord_message(sent_level: &SentLevel) -> MessageBuilder {
+	let mut send_level_message = MessageBuilder::new();
+
+	send_level_message = send_level_message.push(build_level_name_string(&sent_level).as_str());
+	send_level_message = send_level_message.push(build_sent_for_string(&sent_level).as_str());
+	send_level_message = send_level_message.push(build_notify_string(&sent_level).as_str());
+
+	send_level_message
+}
+
+fn build_level_name_string(sent_level: &SentLevel) -> String {
+	let mut level_name_string = String::new();
+	if let Some(gd_level_info) = &sent_level.level_request.gd_level_info {
+		level_name_string.push_str(&format!("\"{}\" ", &gd_level_info.level_name));
+	} else {
+		level_name_string.push_str("The level ");
+	}
+
+	level_name_string
+}
+
+fn build_sent_for_string(sent_level: &SentLevel) -> String {
+	let mut level_sent_for_string = MessageBuilder::new();
+	if sent_level.moderator_data.suggested_score == SuggestedScore::NoRate {
+		level_sent_for_string = level_sent_for_string.push_bold("has not ");
+		level_sent_for_string = level_sent_for_string.push("been sent...");
+	} else if sent_level.moderator_data.suggested_score == SuggestedScore::Rated {
+		level_sent_for_string = level_sent_for_string.push_bold("has already ");
+		level_sent_for_string = level_sent_for_string.push("been rated.");
+	} else {
+		level_sent_for_string = level_sent_for_string.push_bold("has ");
+		level_sent_for_string = level_sent_for_string.push("been sent for ");
+		level_sent_for_string = level_sent_for_string.push(build_sent_for_with_rating_string(&sent_level).as_str());
+	}
+
+	level_sent_for_string.build()
+}
+
+fn build_sent_for_with_rating_string(sent_level: &SentLevel) -> String {
+	let mut level_sent_for_with_rating_string = MessageBuilder::new();
+	level_sent_for_with_rating_string = level_sent_for_with_rating_string.push_bold(
+		format!(
+			"{}, {} {}",
+			serde_json::to_string(&sent_level.moderator_data.suggested_rating)
+				.unwrap()
+				.replace("\"", ""),
+			serde_json::to_string(&sent_level.moderator_data.suggested_score)
+				.unwrap()
+				.replace("\"", ""),
+			if let Some(gd_level_info) = &sent_level.level_request.gd_level_info {
+				if gd_level_info.level_length == LevelLength::Platformer {
+					"Moons!"
+				} else {
+					"Stars!"
+				}
+			} else {
+				"Stars/Moons!"
+			}
+		)
+			.as_str(),
+	);
+
+	level_sent_for_with_rating_string.build()
+}
+
+fn build_notify_string(sent_level: &SentLevel) -> String {
+	let mut notify_string = MessageBuilder::new();
+	if sent_level.level_request.notify {
+		notify_string = notify_string.push(
+			format!(
+				"\n{}",
+				Mention::User(UserId::new(sent_level.level_request.discord_user_id))
+			)
+				.as_str(),
+		);
+	}
+
+	notify_string.build()
 }
