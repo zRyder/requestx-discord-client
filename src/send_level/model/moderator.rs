@@ -10,6 +10,18 @@ pub struct SentLevel {
 	pub moderator_data: ModeratorData,
 }
 
+impl SentLevel {
+	pub fn from_already_rated_level_request(level_request: LevelRequest) -> Self {
+		Self {
+			level_request,
+			moderator_data: ModeratorData {
+				suggested_score: SuggestedScore::Rated,
+				suggested_rating: SuggestedRating::Rate
+			}
+		}
+	}
+}
+
 #[derive(Serialize, Debug, Copy, Clone)]
 pub struct SendLevelRequest {
 	pub level_id: u64,

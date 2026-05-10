@@ -13,12 +13,14 @@ use crate::{
 	},
 };
 use log::error;
-use serenity::all::{GenericChannelId, MessageId};
+use serenity::all::{CreateMessage, MessageId, GenericChannelId};
 use serenity::{
 	all::{CommandInteraction, CommandOptionType},
 	builder::{CreateCommand, CreateCommandOption},
 	prelude::Context,
 };
+use crate::send_level::model::moderator::SentLevel;
+use crate::serenity::discord::format_public_discord_message;
 
 pub fn register_request_level<'a>() -> CreateCommand<'a> {
 	CreateCommand::new("request-level")
@@ -268,6 +270,66 @@ pub async fn run_edit_level_request(ctx: &Context, command: &CommandInteraction)
 		Err(error) => {
 			content = error.to_string();
 			log_error_to_discord(&command.user, "editing a level request", &error, None, &ctx)
+				.await;
+		}
+	}
+
+	invoke_command_ephemeral(&content, &ctx, &command).await;
+}
+
+pub fn register_send_rated_level_requests<'a>() -> CreateCommand<'a> {
+	CreateCommand::new("send-rated-level-requests")
+		.description("Instructs the server to send already rated requests")
+}
+
+pub async fn run_send_rated_level_requests(ctx: &Context, command: &CommandInteraction) {
+	let content: String;
+	if !command.user.id.eq(&CLIENT_CONFIG.discord_bot_admin_id) {
+		content = "Forbidden".to_string();
+		invoke_command_ephemeral(&content, &ctx, &command).await;
+		return;
+	}
+	let service = LevelRequestService::new();
+
+	match service.get_rated_pending_level_requests().await {
+		Ok(level_requests) => {
+			let unchecked_level_request_size = level_requests.len();
+			for level_request in level_requests {
+				let Some(level_request_message_id) = level_request.discord_message_id else {
+					error!("Unable to get the discord message id from level request {:?}", level_request);
+					continue
+				};
+
+				let send_level_message = format_public_discord_message(
+					&SentLevel::from_already_rated_level_request(level_request)
+				);
+				let level_request_thread = GenericChannelId::new(level_request_message_id);
+				if let Err(send_message_error) = level_request_thread.send_message(
+					&ctx.http,
+					CreateMessage::new()
+						.content(send_level_message.build())
+				).await {
+					error!("Unable to send sent level request message: {}", send_message_error);
+				}
+			}
+
+			content = format!("{} Level requests have already been rated", unchecked_level_request_size);
+			log_action_to_discord(
+				&command.user,
+				"Checked for rated pending level requests",
+				Some(&unchecked_level_request_size),
+				&ctx
+			).await;
+		}
+		Err(error) => {
+			content = error.to_string();
+			log_error_to_discord(
+				&command.user,
+				"getting pending level requests",
+				&error,
+				None,
+				&ctx,
+			)
 				.await;
 		}
 	}

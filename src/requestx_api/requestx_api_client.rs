@@ -12,12 +12,7 @@ use crate::{
 		level_request::{LevelRequest, UpdateLevelRequest, UpdateLevelRequestMessageId},
 		level_request_error::{ErrorMessage, LevelRequestError},
 	},
-	level_review::model::{
-		level_review::{LevelReview, UpdateLevelReviewMessageId},
-		level_review_error::LevelReviewError,
-	},
 	request_manager::model::request_manager::RequestConfig,
-	reviewer::model::{reviewer::CreateReviewerRequest, reviewer_error::ReviewerError},
 	send_level::model::{
 		moderator::{SendLevelRequest, SentLevel},
 		send_level_error::ModeratorError,
@@ -148,60 +143,6 @@ impl<'a> RequestXApiClient<'a> {
 				})?;
 
 			Ok(Some(level_request_data))
-		}
-	}
-
-	pub async fn get_level_review(
-		&self,
-		reviewer_discord_id: u64,
-		level_id: u64,
-	) -> Result<Option<LevelReview>, LevelReviewError> {
-		let mut headers = HeaderMap::new();
-		Self::get_auth_header(&mut headers).await;
-		let response = self
-			.web_client
-			.get(format!(
-				"{}{}/{}",
-				self.requestx_api_config.base_url,
-				self.requestx_api_config.paths.review_level,
-				level_id
-			))
-			.query(&[("discord_id", reviewer_discord_id)])
-			.headers(headers)
-			.send()
-			.await
-			.map_err(|get_level_review_error| {
-				error!(
-					"Error making API call for level review to RequestX API: {}",
-					get_level_review_error
-				);
-				LevelReviewError::RequestError
-			})?;
-
-		let status_code = response.status();
-		let response_body = response.text().await.unwrap();
-
-		if status_code.eq(&StatusCode::NOT_FOUND) {
-			Ok(None)
-		} else if status_code.is_server_error() || status_code.is_client_error() {
-			let error_message =
-				serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
-			error!(
-				"Error response received from RequestX API: {}",
-				error_message.message
-			);
-			Err(LevelReviewError::RequestXApiError(error_message))
-		} else {
-			let level_review_data: LevelReview =
-				serde_json::from_str(&response_body).map_err(|deserialize_error| {
-					error!(
-						"Unable to deserialize OK response from RequestX API: {}",
-						deserialize_error
-					);
-					LevelReviewError::RequestError
-				})?;
-
-			Ok(Some(level_review_data))
 		}
 	}
 
@@ -359,152 +300,6 @@ impl<'a> RequestXApiClient<'a> {
 		}
 	}
 
-	pub async fn create_level_review(
-		&self,
-		level_review: &LevelReview,
-	) -> Result<LevelReview, LevelReviewError> {
-		let serialized_create_level_review =
-			serde_json::to_string(&level_review).map_err(|serialize_error| {
-				error!(
-					"Unable to serialize level review to json: {}",
-					serialize_error
-				);
-				LevelReviewError::SerializeError
-			})?;
-
-		let mut headers = HeaderMap::new();
-		Self::get_auth_header(&mut headers).await;
-		let response = self
-			.web_client
-			.post(format!(
-				"{}{}",
-				self.requestx_api_config.base_url, self.requestx_api_config.paths.review_level
-			))
-			.body(serialized_create_level_review)
-			.headers(headers)
-			.send()
-			.await
-			.map_err(|create_level_review_error| {
-				error!(
-					"Error making API call for create level review to RequestX API: {}",
-					create_level_review_error
-				);
-				LevelReviewError::RequestError
-			})?;
-
-		let status_code = response.status();
-		let response_body = response.text().await.unwrap();
-
-		if status_code.is_client_error() || status_code.is_server_error() {
-			let error_message =
-				serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
-			error!(
-				"Error response received from RequestX API: {}",
-				error_message.message
-			);
-
-			Err(LevelReviewError::RequestXApiError(error_message))
-		} else {
-			let level_review_data: LevelReview =
-				serde_json::from_str(&response_body).map_err(|deserialize_error| {
-					error!(
-						"Unable to deserialize OK response from RequestX API: {}",
-						deserialize_error
-					);
-					LevelReviewError::RequestError
-				})?;
-
-			Ok(level_review_data)
-		}
-	}
-
-	pub async fn create_reviewer(
-		&self,
-		create_reviewer_request: CreateReviewerRequest,
-	) -> Result<(), ReviewerError> {
-		let serialized_create_reviewer =
-			serde_json::to_string(&create_reviewer_request).map_err(|serialize_error| {
-				error!(
-					"Unable to serialize level review to json: {}",
-					serialize_error
-				);
-				ReviewerError::SerializeError
-			})?;
-
-		let mut headers = HeaderMap::new();
-		Self::get_auth_header(&mut headers).await;
-		let response = self
-			.web_client
-			.post(format!(
-				"{}{}",
-				self.requestx_api_config.base_url, self.requestx_api_config.paths.reviewer
-			))
-			.body(serialized_create_reviewer)
-			.headers(headers)
-			.send()
-			.await
-			.map_err(|create_reviewer_error| {
-				error!(
-					"Error making API call for create reviewer to RequestX API: {}",
-					create_reviewer_error
-				);
-				ReviewerError::RequestError
-			})?;
-
-		let status_code = response.status();
-		if status_code.is_client_error() || status_code.is_server_error() {
-			let response_body = response.text().await.unwrap();
-			let error_message =
-				serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
-			error!(
-				"Error response received from RequestX API: {}",
-				error_message.message
-			);
-
-			Err(ReviewerError::RequestXApiError)
-		} else {
-			Ok(())
-		}
-	}
-
-	pub async fn remove_reviewer(&self, reviewer_discord_id: u64) -> Result<(), ReviewerError> {
-		let mut headers = HeaderMap::new();
-		Self::get_auth_header(&mut headers).await;
-		let response = self
-			.web_client
-			.delete(format!(
-				"{}{}/{}",
-				self.requestx_api_config.base_url,
-				self.requestx_api_config.paths.reviewer,
-				reviewer_discord_id
-			))
-			.headers(headers)
-			.send()
-			.await
-			.map_err(|remove_reviewer_error| {
-				error!(
-					"Error making API call for remove reviewer to RequestX API: {}",
-					remove_reviewer_error
-				);
-				ReviewerError::RequestError
-			})?;
-
-		let status_code = response.status();
-		if status_code.is_client_error() || status_code.is_server_error() {
-			let response_body = response.text().await.unwrap();
-			let error_message =
-				serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
-			error!(
-				"Error response received from RequestX API: {}",
-				error_message.message
-			);
-
-			Err(ReviewerError::RequestXApiError)
-		} else {
-			Ok(())
-		}
-	}
-
 	pub async fn send_level(
 		&self,
 		send_level: SendLevelRequest,
@@ -557,6 +352,55 @@ impl<'a> RequestXApiClient<'a> {
 				})?;
 
 			Ok(send_level_data)
+		}
+	}
+
+	pub async fn get_rated_pending_level_requests(
+		&self,
+	) -> Result<Vec<LevelRequest>, LevelRequestError> {
+		let mut headers = HeaderMap::new();
+		Self::get_auth_header(&mut headers).await;
+		let response = self
+			.web_client
+			.get(format!(
+				"{}{}/rated",
+				self.requestx_api_config.base_url,
+				self.requestx_api_config.paths.request_level,
+			))
+			.headers(headers)
+			.send()
+			.await
+			.map_err(|get_level_requests_error| {
+				error!(
+					"Error making API call for rated, pending level request to RequestX API: {}",
+					get_level_requests_error
+				);
+				LevelRequestError::RequestError
+			})?;
+
+		let status_code = response.status();
+		let response_body = response.text().await.unwrap();
+
+		if status_code.is_server_error() || status_code.is_client_error() {
+			let error_message =
+				serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
+			error!(
+				"Error response received from RequestX API: {}",
+				error_message.message
+			);
+
+			Err(LevelRequestError::RequestXApiError(error_message))
+		} else {
+			let level_request_data: Vec<LevelRequest> =
+				serde_json::from_str(&response_body).map_err(|deserialize_error| {
+					error!(
+						"Unable to deserialize OK response from RequestX API: {}",
+						deserialize_error
+					);
+					LevelRequestError::RequestError
+				})?;
+
+			Ok(level_request_data)
 		}
 	}
 
@@ -826,57 +670,6 @@ impl<'a> RequestXApiClient<'a> {
 				status_code,
 				response_body,
 			))
-		} else {
-			Ok(())
-		}
-	}
-
-	pub async fn update_level_review_message_id(
-		&self,
-		update_level_review_message_id: UpdateLevelReviewMessageId,
-	) -> Result<(), LevelReviewError> {
-		let serialized_update_level_review_message_id =
-			serde_json::to_string(&update_level_review_message_id).map_err(|serialize_error| {
-				error!(
-					"Unable to serialize update_level_review_message_id to json: {}",
-					serialize_error
-				);
-				LevelReviewError::SerializeError
-			})?;
-
-		let mut headers = HeaderMap::new();
-		Self::get_auth_header(&mut headers).await;
-		let response = self
-			.web_client
-			.patch(format!(
-				"{}{}",
-				self.requestx_api_config.base_url,
-				self.requestx_api_config.paths.update_review_message_id
-			))
-			.body(serialized_update_level_review_message_id)
-			.headers(headers)
-			.send()
-			.await
-			.map_err(|update_level_review_message_id_error| {
-				error!(
-					"Error making API call for update level review message id to RequestX API: {}",
-					update_level_review_message_id_error
-				);
-				LevelRequestError::RequestError
-			})?;
-
-		let status_code = response.status();
-		let response_body = response.text().await.unwrap();
-
-		if status_code.is_client_error() || status_code.is_server_error() {
-			let error_message =
-				serde_json::from_str::<ErrorMessage>(&*response_body).unwrap_or_default();
-			error!(
-				"Error response received from RequestX API: {}",
-				error_message.message
-			);
-
-			Err(LevelReviewError::RequestXApiError(error_message))
 		} else {
 			Ok(())
 		}

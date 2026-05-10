@@ -71,6 +71,14 @@ impl<'a> LevelRequestService<'a> {
 			.await
 	}
 
+	pub async fn get_rated_pending_level_requests(
+		&self,
+	) -> Result<Vec<LevelRequest>, LevelRequestError> {
+		self.requestx_api_client
+			.get_rated_pending_level_requests()
+			.await
+	}
+
 	pub async fn update_request_message_id(
 		&self,
 		update_level_request_message: UpdateLevelRequestMessageId,

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use serenity::all::{
 	Component, CreateComponent, CreateLabel, CreateSelectMenu, CreateSelectMenuKind,
 	CreateSelectMenuOption, LabelComponent, ModalInteraction,
@@ -6,7 +7,6 @@ use serenity::{
 	all::{CreateModal, InputTextStyle},
 	builder::CreateInputText,
 };
-use std::borrow::Cow;
 use std::collections::HashMap;
 
 pub fn get_init_gd_account_link_modal<'a>() -> CreateModal<'a> {
@@ -72,6 +72,51 @@ pub fn get_request_level_modal<'a>() -> CreateModal<'a> {
 	));
 
 	CreateModal::new("request-level-modal", "Request a Level").components(rows)
+}
+
+pub fn get_edit_level_request_modal<'a>() -> CreateModal<'a> {
+	let mut rows: Vec<CreateComponent> = Vec::new();
+	rows.push(CreateComponent::Label(CreateLabel::input_text(
+		"Level ID",
+		CreateInputText::new(InputTextStyle::Short, "level-id")
+			.placeholder("72308725")
+			.min_length(1)
+			.max_length(10)
+			.required(true),
+	)));
+	rows.push(CreateComponent::Label(CreateLabel::select_menu(
+		"Requested Rating",
+		CreateSelectMenu::new(
+			"request-rating",
+			CreateSelectMenuKind::String {
+				options: Cow::Owned(get_request_level_request_rating_options()),
+			},
+		)
+	)));
+	rows.push(CreateComponent::Label(CreateLabel::input_text(
+		"YouTube Video",
+		CreateInputText::new(InputTextStyle::Short, "video-link")
+			.placeholder("https://youtu.be/lzMQWS9XvJo?si=IKnHdi0h_7K4lNSH")
+			.required(false)
+	)));
+	rows.push(CreateComponent::Label(
+		CreateLabel::select_menu(
+			"Get notified when a request has been checked?",
+			CreateSelectMenu::new(
+				"notify",
+				CreateSelectMenuKind::String {
+					options: Cow::Owned(get_yes_no_options()),
+				},
+			)
+		)
+			.description(
+				"Select \"Yes\" if you would like to be pinged when your \
+			 request has checked",
+			),
+	));
+
+	CreateModal::new("edit-level-request-modal", "Edit An Existing Level Request")
+		.components(rows)
 }
 
 fn get_request_level_request_rating_options<'a>() -> Vec<CreateSelectMenuOption<'a>> {

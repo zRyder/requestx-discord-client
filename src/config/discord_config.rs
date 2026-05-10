@@ -2,7 +2,7 @@ use crate::request_manager::service::request_manager_service::RequestConfigServi
 use crate::serenity::discord::{get_request_level_config_embed, get_request_level_embed};
 use crate::{
 	config::client_config::CLIENT_CONFIG,
-	serenity::discord::{get_init_gd_account_link_embed, get_verify_gd_account_link_embed},
+	serenity::discord::{get_init_gd_account_link_embed},
 };
 use log::error;
 use serenity::all::{CurrentUser, GenericChannelId};
@@ -94,25 +94,18 @@ pub async fn init_verify_message(ctx: &Context, bot_user: &User) {
 		.unwrap_or_default();
 
 	if !messages.is_empty() {
-		let (init_message_exists, verify_message_exists) =
+		let init_message_exists =
 			messages
 				.iter()
-				.fold((false, false), |(init_exists, verify_exists), message| {
-					(
-						init_exists || check_message(&message, "init".to_string()),
-						verify_exists || check_message(&message, "verify".to_string()),
-					)
+				.fold(false, | init_exists, message| {
+					init_exists || check_message(&message, "init".to_string())
 				});
 
 		if !init_message_exists {
 			send_init_message(&ctx, &bot_user, &verify_channel).await
 		}
-		if !verify_message_exists {
-			send_verify_message(&ctx, &bot_user, &verify_channel).await
-		}
 	} else {
 		send_init_message(&ctx, &bot_user, &verify_channel).await;
-		send_verify_message(&ctx, &bot_user, &verify_channel).await;
 	}
 }
 
@@ -132,6 +125,11 @@ async fn send_request_message(ctx: &Context, bot_user: &User, request_channel: &
 			CreateButton::new("request-level-button")
 				.label("Request a Level")
 				.style(ButtonStyle::Success),
+		)
+		.button(
+			CreateButton::new("edit-level-button")
+				.label("Edit Existing Level Request")
+				.style(ButtonStyle::Primary)
 		)
 		.embed(get_request_level_embed(&bot_user));
 
@@ -186,6 +184,11 @@ async fn send_init_message(ctx: &Context, bot_user: &User, verify_channel: &Gene
 		.button(
 			CreateButton::new("init-gd-account-link-button")
 				.label("Link GD Account")
+				.style(ButtonStyle::Success),
+		)
+		.button(
+			CreateButton::new("verify-gd-account-link-button")
+				.label("Verify GD Account Link")
 				.style(ButtonStyle::Primary),
 		)
 		.embed(get_init_gd_account_link_embed(&bot_user));
@@ -197,27 +200,6 @@ async fn send_init_message(ctx: &Context, bot_user: &User, verify_channel: &Gene
 			error!(
 				"Failed to send init message to verification channel: {}",
 				send_init_message_error
-			);
-		})
-		.ok();
-}
-
-async fn send_verify_message(ctx: &Context, bot_user: &User, verify_channel: &GenericChannelId) {
-	let verify_message = CreateMessage::new()
-		.button(
-			CreateButton::new("verify-gd-account-link-button")
-				.label("Verify GD Account Link")
-				.style(ButtonStyle::Primary),
-		)
-		.embed(get_verify_gd_account_link_embed(&bot_user));
-
-	verify_channel
-		.send_message(&ctx.http, verify_message)
-		.await
-		.map_err(|send_verify_message_error| {
-			error!(
-				"Failed to send verify message to verification channel: {}",
-				send_verify_message_error
 			);
 		})
 		.ok();
